@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+    <h1>Edit Character</h1>
+
+    <div class="card">
+        <form method="POST">
+            <div class="form-group">
+                <label for="character_name">Character Name</label>
+                <input type="text" id="character_name" name="character_name"
+                        value="{{ character.Character_Name }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="server_id">Server</label>
+                <select id="server_id" name=""server_id" required>
+                    {% for server in servers %}
+                        <option value="{{ server.Server_ID }}"
+                                {% if server.Server_ID == character.Server_ID %}selected{% endif %}>
+                            {{ server.Server_Name }}
+                        </option>
+                    {% endfor %}       
+                </select>
+            </div>
+
+            <div class="form-group checkbox-group">
+                <label>
+                    <input type="checkbox" name="playable" value="1"
+                            {% if character.Playable %}checked{% endif %}>
+                    This character is playable
+                </label>
+            </div>
+
+            <button type="submit" class="btn-primary">Save Changes</button>
+            <a href="{{ url_for('characters') }}" class="btn-secondary">Cancel</a>
+        </form>
+    </div>
+{% endblock %}

@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}{{ character.Character_Name }} - Details {% endblock %}
+
+{% block content %}
+    <h1>{{ character.Character_Name }}</h1>
+
+    <div class="card">
+        <h2>Character Information</h2>
+        <p><strong>Character ID:</strong> {{character.Character_ID }}</p>
+        <p><strong>Server:</strong>
+            {% if character.server %}
+                {{ character.server.Server_Name }}
+            {% else %}
+                Not assigned
+            {% endif %}
+        </p>
+        <p><strong>Playable:</strong> 
+            {% if character.Playable %}
+                <span class="playable">Yes ★</span>
+            {% else %}
+                No
+            {% endif %}
+        </p>
+    </div>
+
+    <h2>Storage Locations ({{ character.storage_locations|length if character.storage_locations else 0 }})</h2>
+
+    <div class="cards-container">
+        {% if character.storage_locations %}
+                {% for loc in character.storage_locations %}
+                    <div class="card">
+                        <div class="card-header">
+                            <strong>{{ loc.Storage_Location }}</strong>
+                            <span class="item-count">({{ loc.item_locations|length }} items)</span>
+                        </div>
+                        <div class="card-body">
+                            <!-- Current Items List -->
+                             <h4>Items in this storage</h4>
+                             {% if loc.item_locations %}
+                                <ul class="item-list">
+                                {% for item_loc in loc.item_locations %}
+                                    <li class="item-row">
+                                        <span class="item-name">
+                                            <strong>{{ item_loc.item.Item_Name }}</strong>
+                                        </span>
+                                        <span class="item-qty">
+                                            x {{ item_loc.Quantity }}
+                                            {% if item_loc.Quantity_HQ > 0 %}
+                                                <span class="hq">HQ x {{ item_loc.Quantity_HQ }}</span>
+                                            {% endif %}
+                                        </span>
+
+                                        <!-- Action Buttons -->
+                                        <!-- <button onclick="alert('Ediut button clicked!')" class="btn-warning small">Edit Qty</button> -->
+                                        <button onclick="toggleEditForm(this)" class="btn-warning small">Edit Qty</button>
+
+                                        <form method="POST"
+                                            action="{{ url_for('remove_item_from_storage', storage_id=loc.Storage_ID, item_id=item_loc.Item_ID) }}"
+                                            style="display: inline;"
+                                            onsubmit="return confirm('Remove {{ item_loc.item.Item_Name }} from this storage?')">
+                                            <button type="submit" class="btn-danger small">Remove</button>
+                                        </form>
+
+                                    <!-- Hidden Edit Quantity Form -->
+                                     <div class="edit-qty-form" style="display: none; margin-top: 12px; padding: 15px; background: #f0f8ff; border-radius: 8px;">
+                                        <form method="POST" action="{{ url_for('update_item_quantity', storage_id=loc.Storage_ID, item_id=item_loc.Item_ID) }}">
+                                            <div style="display: flex; gap: 15px; align-items: end; flex-wrap: wrap;">
+                                                <div>
+                                                    <label>Normal Qty</label>
+                                                    <input type="number" name="normal_quantity" value="{{ item_loc.Quantity or 0 }}" min="0" style="width: 90px">
+                                                </div>
+                                                <div>
+                                                    <label>HQ Qty</label>
+                                                    <input type="number" name="hq_quantity" value="{{ item_loc.Quantity_HQ or 0 }}" min="0" style="width: 90px">
+                                                </div>
+                                                <div style="margin-top: 20px;">
+                                                    <button type="submit" class="btn-primary small">Save Changes</button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                     </div>
+                                    </li>
+                                {% endfor %}    
+                                </ul>
+                            {% else %}
+                                <p class="no-items">No iteems in this storage yet.</p>
+                            {% endif %}
+
+                            <!-- Add New Item Form -->
+                             <div class="add-item-section">
+                                <h4>Add New Item</h4>
+                                <form method="POST" action="{{ url_for('add_item_to_storage', storage_id=loc.Storage_ID) }}" style="margin-top: 20px;">
+                                    <div class="form-row">
+                                        <div class="form-field">
+                                            <label for="item_name_{{ loc.Storage_ID}}">Item Name</label>
+                                            <input type="text" name="item_name" placeholder="Item name"
+                                                    placeholder="e.g. Copper Ore" required>
+                                        </div>
+                                    
+                                        <div class="form-field qty-field>
+                                            <label for="quantity_{{ loc.Storage_ID }}">Qty</label>
+                                            <input type="number" id="quantity_{{ loc.Storage_ID }}" name="quantity" 
+                                                    value="1" min="1" required>
+                                        </div>
+                                        <div class="form-field hq-field">
+                                            <label>
+                                                <input type="checkbox" name="hq" value="1">
+                                                HQ
+                                            </label>
+                                        </div>
+                                        <button type="submit" class="btn-primary">Add Item</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+            <div class="card">
+                <p>No storage locations found for this character yet.</p>
+            </div>
+        {% endif %}
+    </div>        
+
+    <!-- Add New Storage Location Form -->
+    <div class="card">
+        <h2>Add New Storage Location</h2>
+        <form method="POST" action="{{ url_for('add_storage_location', char_id=character.Character_ID) }}">
+            <div class="form-group">
+                <label for="storage_location">Storage Location Name:</label>
+                <input type="text" id="storage_location" name="storage_location"
+                        placeholder="e.g. Inventory, Retainer 1, Saddlebag, FC Chest" required>
+            </div>
+            <button type="submit" class="btn-primary">Add Storage Location</button>
+        </form>
+    </div>
+
+    <br>
+    <a href="{{ url_for('characters') }}" class="btn-secondary">← Back to All Characters</a>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleEditForm(btn) {
+    // Find the closest item row
+    const row = btn.closest('.item-row');
+    if (!row) return; 
+
+    // Find the edit form inside this row
+    const editForm = row.querySelector('.edit-qty-form');
+    if (!editForm) return;
+
+    const isHidden = editForm.style.display === 'none' || editForm.style.display === '';
+
+    // Toggle visibility
+    if (isHidden) {
+        editForm.style.display = 'block';
+        btn.textContent = 'Cancel';
+        btn.classList.remove('btn-warning');
+        btn.classList.add('btn-secondary');
+    } else {
+        editForm.style.display = 'none';
+        btn.textContent = 'Edit Qty';
+        btn.classList.remove('btn-secondary');
+        btn.classList.add('btn-warning');
+    }
+}
+</script>
+{% endblock %}

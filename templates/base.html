@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FFXIV Tracker{% endblock %}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f4f4f4;
+        }
+        .navbar {
+            background-color: #333;
+            color: white;
+            padding: 15px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            margin-right: 25px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .navbar a:hover {
+            background-color: #555;
+            color: #ffd700;
+        }
+        .navbar a.active {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+        }
+        .container {
+            margin: 20px 40px;
+        }
+        /* Flash messages */
+        .flash {
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 6px;
+            border: 1px solid;
+        }
+        .flash.success {
+            background-color: #d4edda;
+            color: #155724;
+            border-color: #c3e6cb;
+        }
+        .flash.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+        /* Card Styles */
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        /* Make buttons wrap nicely on smaller screens */
+        .card-body{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .character-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .character-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .card-header a {
+            font-size: 1.2em;
+            color: #333;
+            text-decoration: none;
+        }
+
+        .card-header a:hover {
+            color: #007bff;
+        }
+
+        .card-body p {
+            margin: 8px 0;
+            color: #555;
+        }
+
+        .server-group {
+            margin-bottom: 40px;
+        }
+
+        .server-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #007bff;
+        }
+
+        .server-header h3 {
+            margin: 0;
+            color: #333;
+        }
+
+        .count-badge {
+            background-color: #007bff;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .server-group .cards-container {
+            margin-top: 10px;
+        }
+
+        /* Form styling */
+        .for-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input[type="text"],
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+
+        .form-group input[type="text"]:focus,
+        .form-group select:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0,123, 255, 0.2);
+        }
+
+        .add-item-form {
+            margin-top: 15px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+            align-items: end;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .form-field {
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .form-field label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-field input[type="text"],
+        .form-field input[type="number"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+
+        .qty-field {
+            flex: 0 0 90px;
+        }
+
+        .hq-field {
+            flex: 0 0 80px;
+            padding-top: 24px;
+        }
+
+        .hq-field label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 600px) {
+            .form-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .form-field {
+                min-width: 100%;
+            }
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            accent-color: #007bff;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            text-decoration: none;
+            display: inline-block;
+            margin-left: 8px;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius:6px;
+            text-decoration: none;
+            display: inline-block;
+            margin-left: 8px;
+        }
+
+        .playable {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .item-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0 20px 0;
+        }
+
+        .item-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .item-list li:last-child {
+            border-bottom: none;
+        }
+
+        .item-list.compact {
+            list-style: none;
+            padding: 0;
+            margin: 8px 0 20px 0;
+            max-height: 300px;              
+            overflow-y: auto;
+            border-radius: 6px;
+            padding: 10px;
+            background: #fafafa;
+        }
+
+        .item-list.compact li {
+            padding: 6px 10px;
+            border-bottom: 1px solid #f0f0f0;
+            display:flex;
+            justify-content: space-between;
+        }
+
+        .item-list.compact li:last-child {
+            border-bottom: none;
+        }
+
+        .hq {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .item-count {
+            font-size: 0.85em;
+            color: #666;
+            margin-left: 10px;
+        }
+
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px
+        }
+
+        .item-row:last-child {
+            border-bottom: none;
+        }
+
+        .item-name {
+            flex: 1;
+        }
+
+        .item-qty {
+            margin-right: 15px;
+            font-weight: 500;
+        }
+
+        .no-items {
+            color: #888;
+            font-style: italic;
+            padding: 10px;
+        }
+
+        .add-item-section {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: solid #eee;
+        }
+
+        .small {
+            padding: 4px 10px;
+            font-size: 0.85em;
+        }
+    </style>
+
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <div class="navbar">
+        <div>
+            <a href="{{ url_for('characters') }}"
+               Class ="{% if request.endpoint == 'characters' %}active{% endif %}">
+                FFXIV Tracker
+            </a>
+            <a href="{{ url_for('characters') }}"
+               class="{% if request.endpoint == 'characters' %}active{% endif %}">
+                Characters
+            </a>
+        </div>
+        <div>
+            <!-- You can add more links here later -->
+        </div>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+    
+{% block scripts %}{% endblock %}
+</body>
+</html>
