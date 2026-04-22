@@ -1,0 +1,121 @@
+-- =============================================
+-- FFXIV Database - MariaDB Version (Corrected Spelling)
+-- =============================================
+
+CREATE DATABASE IF NOT EXISTS FFXIVDatabase
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
+
+USE FFXIVDatabase;
+
+-- =============================================
+-- Table: Servers
+-- =============================================
+CREATE TABLE Servers (
+    Server_ID INT AUTO_INCREMENT PRIMARY KEY,
+    Server_name VARCHAR(50) NOT NULL,
+    UNIQUE KEY IX_Servers (Server_name)
+) ENGINE=InnoDB;
+
+-- =============================================
+-- Table: Jobs
+-- =============================================
+CREATE TABLE Jobs (
+    Job_ID INT AUTO_INCREMENT PRIMARY KEY,
+    Job_Longname VARCHAR(50) NOT NULL,
+    Job_Shortname VARCHAR(50) NULL,
+    Starting_Level INT NULL,
+    Limited_Job TINYINT(1) NULL,
+    Job_Type VARCHAR(50) NULL,
+    UNIQUE KEY IX_Jobs_Longname (Job_Longname),
+    UNIQUE KEY IX_Jobs_Shortname (Job_Shortname)
+) ENGINE=InnoDB;
+
+-- =============================================
+-- Table: Character
+-- =============================================
+CREATE TABLE `Character` (
+    Character_ID INT AUTO_INCREMENT PRIMARY KEY,
+    Character_Name VARCHAR(50) NOT NULL,
+    Server_ID INT NOT NULL,
+    Playable TINYINT(1) NOT NULL,
+    UNIQUE KEY IX_Character (Character_Name),
+    CONSTRAINT FK_Character_Servers 
+        FOREIGN KEY (Server_ID) REFERENCES Servers(Server_ID)
+) ENGINE=InnoDB;
+
+-- =============================================
+-- Table: CharactersJobLevels
+-- =============================================
+CREATE TABLE CharactersJobLevels (
+    Character_ID INT NOT NULL,
+    Job_ID INT NOT NULL,
+    Job_Level INT NULL,
+    PRIMARY KEY (Character_ID, Job_ID),
+    CONSTRAINT FK_CharactersJobLevels_Character 
+        FOREIGN KEY (Character_ID) REFERENCES `Character`(Character_ID),
+    CONSTRAINT FK_CharactersJobLevels_Jobs 
+        FOREIGN KEY (Job_ID) REFERENCES Jobs(Job_ID)
+) ENGINE=InnoDB;
+
+-- =============================================
+-- Table: Recipes   ← Correct spelling
+-- =============================================
+CREATE TABLE Recipes (
+    Recipe_ID INT AUTO_INCREMENT PRIMARY KEY,
+    Recipe_Name VARCHAR(50) NOT NULL,
+    Job_ID INT NOT NULL,
+    Required_Level INT NOT NULL,
+    CONSTRAINT FK_Recipes_Jobs 
+        FOREIGN KEY (Job_ID) REFERENCES Jobs(Job_ID)
+) ENGINE=InnoDB;
+
+-- =============================================
+-- Table: Items
+-- =============================================
+CREATE TABLE Items (
+    Item_ID INT AUTO_INCREMENT PRIMARY KEY,
+    Item_Name VARCHAR(100) NOT NULL,
+    Item_Type VARCHAR(50) NULL,
+    Item_Obtained_From VARCHAR(50) NULL,
+    UNIQUE KEY IX_Items (Item_Name)
+) ENGINE=InnoDB;
+
+-- =============================================
+-- Table: Ingredients
+-- =============================================
+CREATE TABLE Ingredients (
+    Recipe_ID INT NOT NULL,
+    Item_ID INT NOT NULL,
+    Quantity INT NOT NULL,
+    PRIMARY KEY (Recipe_ID, Item_ID),
+    CONSTRAINT FK_Ingredients_Recipes 
+        FOREIGN KEY (Recipe_ID) REFERENCES Recipes(Recipe_ID),
+    CONSTRAINT FK_Ingredients_Items 
+        FOREIGN KEY (Item_ID) REFERENCES Items(Item_ID)
+) ENGINE=InnoDB;
+
+-- =============================================
+-- Table: StorageLocations
+-- =============================================
+CREATE TABLE StorageLocations (
+    Storage_ID INT AUTO_INCREMENT PRIMARY KEY,
+    Character_ID INT NOT NULL,
+    Storage_Location VARCHAR(50) NOT NULL,
+    CONSTRAINT FK_StorageLocations_Character 
+        FOREIGN KEY (Character_ID) REFERENCES `Character`(Character_ID)
+) ENGINE=InnoDB;
+
+-- =============================================
+-- Table: ItemLocations
+-- =============================================
+CREATE TABLE ItemLocations (
+    Item_ID INT NOT NULL,
+    Storage_ID INT NOT NULL,
+    Quantity INT NULL DEFAULT 0,
+    Quantity_HQ INT NULL DEFAULT 0,
+    CONSTRAINT FK_ItemLocations_Items 
+        FOREIGN KEY (Item_ID) REFERENCES Items(Item_ID),
+    CONSTRAINT FK_ItemLocations_StorageLocations 
+        FOREIGN KEY (Storage_ID) REFERENCES StorageLocations(Storage_ID)
+) ENGINE=InnoDB;
