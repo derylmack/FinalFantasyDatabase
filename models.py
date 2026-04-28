@@ -30,9 +30,7 @@ class Character(db.Model):
     Playable = db.Column(db.Boolean, nullable=False)
     server = db.relationship('Server', back_populates='characters')
     storage_locations = db.relationship('StorageLocations', back_populates='character')
-    characters_job_levels = db.relationship('CharactersJobLevels', back_populates='job_level_character')
-    # characters_job = db.relationship('Jobs', back_populates='job_character')
-    job_levels = db.relationship('CharactersJobLevels', back_populates='character', cascade="all, delete-orphan")
+    characters_job_levels = db.relationship('CharactersJobLevels', back_populates='character',cascade="all, delete-orphan")
 
     # Optional: String representation for easier debugging
     def __repr__(self):
@@ -46,23 +44,19 @@ class Jobs(db.Model):
     Starting_Level = db.Column(db.Integer, nullable=False)
     Limited_Job = db.Column(db.Boolean, nullable=False)
     Job_Type = db.Column(db.String(50), nullable=False)
-    # job_character = db.relationship('Character', back_populates='characters_job')
-    job_level = db.relationship('CharactersJobLevels', back_populates='level_job')
     characters_job_levels = db.relationship('CharactersJobLevels', back_populates='job')
 
 
     # Optional: String representation for easier debugging
     def __repr__(self):
-        return f"<Job {self.Job_Name} >"
+        return f"<Job {self.Job_Longname} >"
     
 class CharactersJobLevels(db.Model):
     __tablename__: str = 'CharactersJobLevels'   # exact table name in database
     Character_ID = db.Column(db.Integer, db.ForeignKey('Character.Character_ID'), primary_key=True, nullable=False)
     Job_ID = db.Column(db.Integer, db.ForeignKey('Jobs.Job_ID'), primary_key=True, nullable=False)
     Job_Level = db.Column(db.Integer, nullable=True)
-    job_level_character = db.relationship('Character', back_populates='characters_job_levels')
-    level_job = db.relationship('Jobs', back_populates='job_level')
-    character = db.relationship('Character', back_populates='job_levels')
+    character = db.relationship('Character', back_populates='characters_job_levels')
     job = db.relationship('Jobs', back_populates='characters_job_levels')
 
     # Optional: String representation for easier debugging
@@ -107,7 +101,7 @@ class ItemLocations(db.Model):
         return f"<ItemLocation Storage ID {self.Storage_ID} Item ID {self.Item_ID} Quantity {self.Quantity}>"
 
 class Recipes(db.Model):
-    __tablename__: str = 'Recipies'   # exact table name in database
+    __tablename__: str = 'Recipes'   # exact table name in database
     Recipe_ID = db.Column(db.Integer, primary_key=True, autoincrement=True)
     Recipe_Name = db.Column(db.String(100), nullable=False, unique=True)
     Job_ID = db.Column(db.Integer, db.ForeignKey(Jobs.Job_ID), nullable=False)
@@ -115,7 +109,7 @@ class Recipes(db.Model):
 
     # Optional: String representation for easier debugging
     def __repr__(self):
-        return f"<Recipie {self.Recipie_Name} >"   
+        return f"<Recipes {self.Recipe_Name} >"   
     
 class Ingredients(db.Model):
     __tablename__: str = 'Ingredients'   # exact table name in database
