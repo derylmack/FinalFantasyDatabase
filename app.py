@@ -8,6 +8,13 @@ from config import Config
 from models import db, Server, Character, StorageLocations, Items, ItemLocations
 
 def create_app(config_class=Config):
+    """ Base call for the ffxivdatabase app
+    Args:
+        configuration file
+
+    Returns:
+        int
+    """
     app = Flask(__name__)
     app.config.from_object(config_class)
 
@@ -16,8 +23,8 @@ def create_app(config_class=Config):
 
     @app.route('/')
     @app.route('/characters')
-    
-    
+
+
     def characters():
         """Display a list of all characters from the database."""
         chars = Character.query.all() #Gets all characters from the database
@@ -26,7 +33,7 @@ def create_app(config_class=Config):
                                title='My FFXIV Characters',
                                characters=chars,
                                servers=servers)
-    
+
     @app.route('/add_character', methods=['POST'])
     def add_character():
         if request.method == 'POST':
@@ -36,11 +43,11 @@ def create_app(config_class=Config):
                 server_id = int(request.form.get('server_id'))
                 playable = 'playable' in request.form # checkbox returns value only if checked
 
-                #Basic validation 
+                #Basic validation
                 if not character_name:
-                    flash('Character name is required!' 'error')
+                    flash('Character name is required!', 'error')
                     return redirect(url_for('characters'))
-                
+
                 #Create new Character object
                 new_character = Character(
                     Character_Name=character_name,
@@ -56,20 +63,30 @@ def create_app(config_class=Config):
 
             except ValueError:
                 flash('Invalid server selection.', 'error')
+            # pylint: disable=broad-exception-caught
             except Exception as e:
                 flash(f'Error: {str(e)}', 'error')
 
-        # Always redirect back to the characters list        
+        # Always redirect back to the characters list
         return redirect(url_for('characters'))
-    
+
     @app.route('/character/<int:char_id>')
     def character_detail(char_id):
         """Display details for a specific character."""
-        character = Character.query.get_or_404(char_id) #Gets the character with the given ID or returns 404
+        # Gets the character with the given ID or returns 404
+        character = Character.query.get_or_404(char_id)
+
+        # TODO: Query storage locations with their items
+        storages = StorageLocations.query.filter_by(Character_ID=char_id)\
+            .order_by(StorageLocations.Storage_Location).all()
+
+        # Optional: Pre-load items for each storage (you can do it here or in template)
+
         return render_template('character_detail.html',
                                title=f"{character.Character_Name}'s Details",
-                               character=character)                             
-    
+                               character=character,
+                               storages=storages)
+
     @app.route('/add_storage_location/<int:char_id>', methods=['POST'])
     def add_storage_location(char_id):
         """Add a new storage location for a specific character"""
@@ -80,7 +97,7 @@ def create_app(config_class=Config):
                 if not location_name:
                     flash('Storage location name is required!', 'error')
                     return redirect(url_for('character_detail', char_id=char_id))
-                
+
                 # Create new StorageLocations record
                 new_storage = StorageLocations(
                     Character_ID=char_id,
@@ -92,15 +109,16 @@ def create_app(config_class=Config):
 
                 flash(f'Storage location "{location_name}" added successfully!', 'success')
 
+            # pylint: disable=broad-exception-caught
             except Exception as e:
                 db.session.rollback()
                 flash(f'Error adding storage locations: {str(e)}', 'error')
         return redirect(url_for('character_detail', char_id=char_id))
-    
+
     @app.route('/servers')
     def servers():
         """Display a list of all servers from the database."""
-        servers = Server.query.order_by(Server.Server_Name).all() #Gets all servers from the database
+        servers = Server.query.order_by(Server.Server_Name).all()
         return render_template('servers.html',
                                title='FFXIV Servers',
                                servers=servers)
@@ -121,7 +139,7 @@ def create_app(config_class=Config):
                 db.session.commit()
                 flash(f'Character "{character.Character_Name}" updated successfully!', 'success')
                 return redirect(url_for('characters'))
-            
+
             # pylint: disable=broad-exception-caught
             except Exception as e:
                 db.session.rollback()
@@ -132,7 +150,7 @@ def create_app(config_class=Config):
                                servers=servers,
                                title=f" Edit {character.Character_Name}")
 
-    # pylint: disable=unused_variable
+    # pylint: disable=unused-variable
     @app.route('/delete_character/<int:char_id>', methods=['POST'])
     def delete_character(char_id):
         """Delete a character from the database."""
@@ -148,7 +166,7 @@ def create_app(config_class=Config):
             db.session.rollback()
             flash(f'Error deleting character: {str(e)}', 'error')
         return redirect(url_for('characters'))
-    
+
     # pylint: disable=unused-variable
     @app.route('/add_item_to_storage/<int:storage_id>', methods=['POST'])
     def add_item_to_storage(storage_id):
@@ -161,7 +179,7 @@ def create_app(config_class=Config):
             if not item_name:
                 flash('Item name is required!', 'error')
                 return redirect(url_for('character_detail', char_id=request.args.get('char_id')))
-            
+
             item = Items.query.filter(Items.Item_Name.ilike(item_name)).first()
 
             if not item:
@@ -169,7 +187,7 @@ def create_app(config_class=Config):
                 db.session.add(item)
                 db.session.flush() # Get the new Item_ID
 
-            # Check if this item is already in this storage 
+            # Check if this item is already in this storage
             existing = ItemLocations.query.filter_by(
                 Item_ID=item.Item_ID,
                 Storage_ID=storage_id
@@ -198,16 +216,16 @@ def create_app(config_class=Config):
             flash('Invalid quantity entered.', 'error')
         # pylint: disable=broad-exception-caught
         except Exception as e:
-            db.session.rollback()    
+            db.session.rollback()
             flash('Error adding item: {type(e).__name__}: {str(e)}', 'error')
-        
+
         # Redirect back to the character detail page
         # We need the character_id to redirect properly
         # For now, we'll get it from the storage location
         storage = StorageLocations.query.get(storage_id)
         char_id = storage.Character_ID if storage else 1
         return redirect(url_for('character_detail', char_id=char_id))
-    
+
     # pylint: disable=unused-variable
     @app.route('/remove_item_from_storage/<int:storage_id>/<int:item_id>', methods=['POST'])
     def remove_item_from_storage(storage_id, item_id):
@@ -235,7 +253,7 @@ def create_app(config_class=Config):
         storage = StorageLocations.query.get(storage_id)
         char_id = storage.Character_ID if storage else 1
         return redirect(url_for('character_detail', char_id=char_id))
-    
+
     # pylint: disable=unused-variable
     @app.route('/update_item_quantity/<int:storage_id>/<int:item_id>', methods=['POST'])
     def update_item_quantity(storage_id, item_id):
@@ -248,7 +266,7 @@ def create_app(config_class=Config):
             if normal_qty < 0 or hq_qty < 0:
                 flash('Quantities cannot be negative.', 'error')
                 return redirect(url_for('character_detail', char_id=request.args.get('char_id')))
-            
+
             #Find the specific item in this storage
             item_loc = ItemLocations.query.filter_by(
                 Storage_ID=storage_id,
@@ -284,16 +302,17 @@ def create_app(config_class=Config):
             Storage_ID=storage_id,
             Item_ID=item_id
         ).all()
-    
+
         output = f"<h3>Debug for Storage_ID={storage_id}, Item_ID={item_id}</h3>"
         output += f"<p>Found {len(items)} matching rows:</p><ul>"
-    
+
         for i, row in enumerate(items):
-            output += f"<li>Row {i+1}: Storage_ID={row.Storage_ID}, Item_ID={row.Item_ID}, Quantity={row.Quantity}, Quantity_HQ={row.Quantity_HQ}</li>"
-    
+            output += f"<li>Row {i+1}: Storage_ID={row.Storage_ID}, Item_ID={row.Item_ID},\
+                    Quantity={row.Quantity}, Quantity_HQ={row.Quantity_HQ}</li>"
+
         output += "</ul>"
         return output
-        
+
     return app
 
 
@@ -301,4 +320,3 @@ def create_app(config_class=Config):
 if __name__ == '__main__':
     app = create_app()
     app.run(debug=True)
-    

@@ -10,9 +10,10 @@ from sqlalchemy.orm import relationship
 db = SQLAlchemy()
 
 """
- Define the Server models 
+ Define the Server models
 """
 class Server(db.Model):
+    """ Definition for Server Table """
     __tablename__ = 'Servers'     # exact table name in database
     Server_ID = db.Column(db.Integer, primary_key=True, autoincrement=True)
     Server_Name = db.Column(db.String(50), nullable=False, unique=True)
@@ -23,6 +24,7 @@ class Server(db.Model):
         return f"<Server {self.Server_Name}>"
 
 class Character(db.Model):
+    """ Definition for Characters Table """
     __tablename__: str = 'Character'   # exact table name in database
     Character_ID = db.Column(db.Integer, primary_key=True, autoincrement=True)
     Character_Name = db.Column(db.String(50), nullable=False, unique=True)
@@ -30,13 +32,16 @@ class Character(db.Model):
     Playable = db.Column(db.Boolean, nullable=False)
     server = db.relationship('Server', back_populates='characters')
     storage_locations = db.relationship('StorageLocations', back_populates='character')
-    characters_job_levels = db.relationship('CharactersJobLevels', back_populates='character',cascade="all, delete-orphan")
+    characters_job_levels = db.relationship('CharactersJobLevels',
+                                             back_populates='character',
+                                             cascade="all, delete-orphan")
 
     # Optional: String representation for easier debugging
     def __repr__(self):
         return f"<Character {self.Character_Name} on Server ID {self.Server_ID}>"
-    
+
 class Jobs(db.Model):
+    """ Definition for Jobs Table """
     __tablename__: str = 'Jobs'   # exact table name in database
     Job_ID = db.Column(db.Integer, primary_key=True, autoincrement=True)
     Job_Longname  = db.Column(db.String(50), nullable=False, unique=True)
@@ -50,10 +55,12 @@ class Jobs(db.Model):
     # Optional: String representation for easier debugging
     def __repr__(self):
         return f"<Job {self.Job_Longname} >"
-    
+
 class CharactersJobLevels(db.Model):
+    """ Definition for CharactersJobLevels Table """
     __tablename__: str = 'CharactersJobLevels'   # exact table name in database
-    Character_ID = db.Column(db.Integer, db.ForeignKey('Character.Character_ID'), primary_key=True, nullable=False)
+    Character_ID = db.Column(db.Integer, db.ForeignKey('Character.Character_ID'),
+                                                        primary_key=True, nullable=False)
     Job_ID = db.Column(db.Integer, db.ForeignKey('Jobs.Job_ID'), primary_key=True, nullable=False)
     Job_Level = db.Column(db.Integer, nullable=True)
     character = db.relationship('Character', back_populates='characters_job_levels')
@@ -64,6 +71,7 @@ class CharactersJobLevels(db.Model):
         return f"<CharactersJobLevel Character ID {self.Character_ID} Job ID {self.Job_ID} Level {self.Job_Level}>"
 
 class StorageLocations(db.Model):
+    """ Definition for StorageLocations Table """
     __tablename__: str = 'StorageLocations'   # exact table name in database
     Storage_ID = db.Column(db.Integer, primary_key=True, autoincrement=True)
     Character_ID = db.Column(db.Integer, db.ForeignKey('Character.Character_ID'), nullable=False)
@@ -73,9 +81,10 @@ class StorageLocations(db.Model):
 
     # Optional: String representation for easier debugging
     def __repr__(self):
-        return f"<StorageLocation {self.StorageLocations} >" 
+        return f"<StorageLocation {self.StorageLocations} >"
 
-class Items(db.Model): 
+class Items(db.Model):
+    """ Definiton for Items Table """
     __tablename__: str = 'Items'   # exact table name in database
     Item_ID = db.Column(db.Integer, primary_key=True, autoincrement=True)
     Item_Name = db.Column(db.String(100), nullable=False, unique=True)
@@ -86,8 +95,9 @@ class Items(db.Model):
     # Optional: String representation for easier debugging
     def __repr__(self):
         return f"<Item {self.Item_Name} >"
-    
+
 class ItemLocations(db.Model):
+    """ Definition for ItemLocations Table """
     __tablename__: str = 'ItemLocations'   # exact table name in database
     Item_ID = db.Column(db.Integer, db.ForeignKey(Items.Item_ID), primary_key=True)
     Storage_ID = db.Column(db.Integer, db.ForeignKey(StorageLocations.Storage_ID), primary_key=True)
@@ -101,6 +111,7 @@ class ItemLocations(db.Model):
         return f"<ItemLocation Storage ID {self.Storage_ID} Item ID {self.Item_ID} Quantity {self.Quantity}>"
 
 class Recipes(db.Model):
+    """ Definition for Recipes Table """
     __tablename__: str = 'Recipes'   # exact table name in database
     Recipe_ID = db.Column(db.Integer, primary_key=True, autoincrement=True)
     Recipe_Name = db.Column(db.String(100), nullable=False, unique=True)
@@ -109,9 +120,10 @@ class Recipes(db.Model):
 
     # Optional: String representation for easier debugging
     def __repr__(self):
-        return f"<Recipes {self.Recipe_Name} >"   
-    
+        return f"<Recipes {self.Recipe_Name} >"
+
 class Ingredients(db.Model):
+    """ Definition for Ingredents Table """
     __tablename__: str = 'Ingredients'   # exact table name in database
     Recipe_ID = db.Column(db.Integer, db.ForeignKey(Recipes.Recipe_ID), primary_key=True)
     Item_ID = db.Column(db.Integer, db.ForeignKey(Items.Item_ID), primary_key=True)

@@ -15,13 +15,13 @@
 
             <div class="form-group">
                 <label for="server_id">Server</label>
-                <select id="server_id" name=""server_id" required>
+                <select id="server_id" name= "server_id" required>
                     {% for server in servers %}
                         <option value="{{ server.Server_ID }}"
                                 {% if server.Server_ID == character.Server_ID %}selected{% endif %}>
                             {{ server.Server_Name }}
                         </option>
-                    {% endfor %}       
+                    {% endfor %}
                 </select>
             </div>
 

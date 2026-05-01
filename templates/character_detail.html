@@ -15,7 +15,7 @@
                 Not assigned
             {% endif %}
         </p>
-        <p><strong>Playable:</strong> 
+        <p><strong>Playable:</strong>
             {% if character.Playable %}
                 <span class="playable">Yes ★</span>
             {% else %}
@@ -81,10 +81,10 @@
                                         </form>
                                      </div>
                                     </li>
-                                {% endfor %}    
+                                {% endfor %}
                                 </ul>
                             {% else %}
-                                <p class="no-items">No iteems in this storage yet.</p>
+                                <p class="no-items">No items in this storage yet.</p>
                             {% endif %}
 
                             <!-- Add New Item Form -->
@@ -94,13 +94,12 @@
                                     <div class="form-row">
                                         <div class="form-field">
                                             <label for="item_name_{{ loc.Storage_ID}}">Item Name</label>
-                                            <input type="text" name="item_name" placeholder="Item name"
-                                                    placeholder="e.g. Copper Ore" required>
+                                            <input type="text" name="item_name" placeholder="Item name" required>
                                         </div>
-                                    
-                                        <div class="form-field qty-field>
+
+                                        <div class="form-field qty-field">
                                             <label for="quantity_{{ loc.Storage_ID }}">Qty</label>
-                                            <input type="number" id="quantity_{{ loc.Storage_ID }}" name="quantity" 
+                                            <input type="number" id="quantity_{{ loc.Storage_ID }}" name="quantity"
                                                     value="1" min="1" required>
                                         </div>
                                         <div class="form-field hq-field">
@@ -121,7 +120,7 @@
                 <p>No storage locations found for this character yet.</p>
             </div>
         {% endif %}
-    </div>        
+    </div>
 
     <!-- Add New Storage Location Form -->
     <div class="card">
@@ -146,7 +145,7 @@
 function toggleEditForm(btn) {
     // Find the closest item row
     const row = btn.closest('.item-row');
-    if (!row) return; 
+    if (!row) return;
 
     // Find the edit form inside this row
     const editForm = row.querySelector('.edit-qty-form');
