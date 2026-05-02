@@ -59,12 +59,14 @@
                                             action="{{ url_for('remove_item_from_storage', storage_id=loc.Storage_ID, item_id=item_loc.Item_ID) }}"
                                             style="display: inline;"
                                             onsubmit="return confirm('Remove {{ item_loc.item.Item_Name }} from this storage?')">
+                                            <input type="hidden" name="char_id" value="{{ character.Character_ID }}">
                                             <button type="submit" class="btn-danger small">Remove</button>
                                         </form>
 
                                     <!-- Hidden Edit Quantity Form -->
                                      <div class="edit-qty-form" style="display: none; margin-top: 12px; padding: 15px; background: #f0f8ff; border-radius: 8px;">
                                         <form method="POST" action="{{ url_for('update_item_quantity', storage_id=loc.Storage_ID, item_id=item_loc.Item_ID) }}">
+                                            <input type="hidden" name="char_id" value="{{ character.Character_ID }}">
                                             <div style="display: flex; gap: 15px; align-items: end; flex-wrap: wrap;">
                                                 <div>
                                                     <label>Normal Qty</label>
@@ -91,6 +93,7 @@
                              <div class="add-item-section">
                                 <h4>Add New Item</h4>
                                 <form method="POST" action="{{ url_for('add_item_to_storage', storage_id=loc.Storage_ID) }}" style="margin-top: 20px;">
+                                    <input type="hidden" name="char_id" value="{{ character.Character_ID }}">
                                     <div class="form-row">
                                         <div class="form-field">
                                             <label for="item_name_{{ loc.Storage_ID}}">Item Name</label>
@@ -126,6 +129,7 @@
     <div class="card">
         <h2>Add New Storage Location</h2>
         <form method="POST" action="{{ url_for('add_storage_location', char_id=character.Character_ID) }}">
+            <input type="hidden" name="char_id" value="{{ character.Character_ID }}">
             <div class="form-group">
                 <label for="storage_location">Storage Location Name:</label>
                 <input type="text" id="storage_location" name="storage_location"

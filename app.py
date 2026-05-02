@@ -6,6 +6,7 @@ Defines the app factory, initializes extentions, and sets up routes.
 from flask import Flask, render_template, request, redirect, url_for, flash
 from config import Config
 from models import db, Server, Character, StorageLocations, Items, ItemLocations
+from sqlalchemy.orm import joinedload
 
 def create_app(config_class=Config):
     """ Base call for the ffxivdatabase app
@@ -74,9 +75,13 @@ def create_app(config_class=Config):
     def character_detail(char_id):
         """Display details for a specific character."""
         # Gets the character with the given ID or returns 404
-        character = Character.query.get_or_404(char_id)
+        character = Character.query.options(
+            joinedload(Character.server),
+            joinedload(Character.storage_locations)
+                .joinedload(StorageLocations.item_locations)
+                .joinedload(ItemLocations.item)
+        ).get_or_404(char_id)
 
-        # TODO: Query storage locations with their items
         storages = StorageLocations.query.filter_by(Character_ID=char_id)\
             .order_by(StorageLocations.Storage_Location).all()
 
@@ -175,10 +180,15 @@ def create_app(config_class=Config):
             item_name = request.form.get('item_name').strip()
             quantity = int(request.form.get('quantity', 1))
             is_hq = 'hq' in request.form
+            char_id = int(request.form.get('char_id'))
 
             if not item_name:
                 flash('Item name is required!', 'error')
                 return redirect(url_for('character_detail', char_id=request.args.get('char_id')))
+
+            if not char_id:
+                flash('Character ID missing.', 'error')
+                return redirect(url_for('characters'))
 
             item = Items.query.filter(Items.Item_Name.ilike(item_name)).first()
 
@@ -219,11 +229,6 @@ def create_app(config_class=Config):
             db.session.rollback()
             flash('Error adding item: {type(e).__name__}: {str(e)}', 'error')
 
-        # Redirect back to the character detail page
-        # We need the character_id to redirect properly
-        # For now, we'll get it from the storage location
-        storage = StorageLocations.query.get(storage_id)
-        char_id = storage.Character_ID if storage else 1
         return redirect(url_for('character_detail', char_id=char_id))
 
     # pylint: disable=unused-variable
@@ -231,6 +236,12 @@ def create_app(config_class=Config):
     def remove_item_from_storage(storage_id, item_id):
         """Remove an item (or reduce quantity) from a storage location."""
         try:
+            char_id = int(request.form.get('char_id'))
+
+            if not char_id:
+                flash('Character ID missing.', 'error')
+                return redirect(url_for('characters'))
+
             # Find the item location entry
             item_loc = ItemLocations.query.filter_by(
                 Storage_ID=storage_id,
@@ -250,22 +261,28 @@ def create_app(config_class=Config):
             flash(f'Error removing item: {str(e)}', 'error ')
 
         # Redirect back to the character detail page
-        storage = StorageLocations.query.get(storage_id)
-        char_id = storage.Character_ID if storage else 1
+
         return redirect(url_for('character_detail', char_id=char_id))
 
     # pylint: disable=unused-variable
     @app.route('/update_item_quantity/<int:storage_id>/<int:item_id>', methods=['POST'])
     def update_item_quantity(storage_id, item_id):
         """Update quantity (Normal and HQ) for an item in storage. """
+        char_id = None
+
         try:
             normal_qty = int(request.form.get('normal_quantity', 0))
             hq_qty = int(request.form.get('hq_quantity', 0))
+            char_id = int(request.form.get('char_id'))
+
+            if not char_id:
+                flash('Character ID missing.', 'error')
+                return redirect(url_for('characters'))
 
             # Basic validation
             if normal_qty < 0 or hq_qty < 0:
                 flash('Quantities cannot be negative.', 'error')
-                return redirect(url_for('character_detail', char_id=request.args.get('char_id')))
+                return redirect(url_for('character_detail', char_id=char_id))
 
             #Find the specific item in this storage
             item_loc = ItemLocations.query.filter_by(
@@ -275,7 +292,7 @@ def create_app(config_class=Config):
 
             if not item_loc:
                 flash('Item not found in this storage.', 'error')
-                return redirect(url_for('character_detail', char_id=request.args.get('char_id')))
+                return redirect(url_for('character_detail', char_id=char_id))
 
             #update quantities
             item_loc.Quantity = normal_qty
@@ -289,10 +306,8 @@ def create_app(config_class=Config):
         # pylint: disable=broad-exception-caught
         except Exception as e:
             db.session.rollback()
-            flash(f'Error updateing quantities: {str(e)}', 'error')
+            flash(f'Error updating quantities: {str(e)}', 'error')
 
-        storage = StorageLocations.query.get(storage_id)
-        char_id = storage.Character_ID if storage else 1
         return redirect(url_for('character_detail', char_id=char_id))
 
     @app.route('/debug_item_loc/<int:storage_id>/<int:item_id>')
