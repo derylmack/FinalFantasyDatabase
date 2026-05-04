@@ -5,7 +5,7 @@ Defines the app factory, initializes extentions, and sets up routes.
 
 from flask import Flask, render_template, request, redirect, url_for, flash
 from config import Config
-from models import db, Server, Character, StorageLocations, Items, ItemLocations
+from models import db, Server, Character, StorageLocations, Items, ItemLocations, CharactersJobLevels
 from sqlalchemy.orm import joinedload
 
 def create_app(config_class=Config):
@@ -79,7 +79,9 @@ def create_app(config_class=Config):
             joinedload(Character.server),
             joinedload(Character.storage_locations)
                 .joinedload(StorageLocations.item_locations)
-                .joinedload(ItemLocations.item)
+                .joinedload(ItemLocations.item),
+            joinedload(Character.characters_job_levels)
+                .joinedload(CharactersJobLevels.job)
         ).get_or_404(char_id)
 
         storages = StorageLocations.query.filter_by(Character_ID=char_id)\

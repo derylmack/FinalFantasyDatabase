@@ -139,6 +139,26 @@
         </form>
     </div>
 
+    <h2>Job Levels</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Job</th>
+                <th>Level</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for job_level in character.characters_job_levels %}
+            <tr>
+                <td>{{ job_level.job.Job_Longname }} ({{ job_level.job.Job_Shortname }})</td>
+                <td>{{ job_level.Job_Level or 'Not Set' }}</td>
+                <td><!-- update for will go here --></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
     <br>
     <a href="{{ url_for('characters') }}" class="btn-secondary">← Back to All Characters</a>
 
