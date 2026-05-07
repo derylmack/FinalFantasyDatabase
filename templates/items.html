@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}All {% endblock %}
+
+{% block content %}
+    <h2>All Items ({{ items|length }})</h2>
+
+    <!-- Search Form -->
+     <div class="card" style="margin-bottom: 20px;">
+        <form method="GET" action="{{ url_for('items_list') }}">
+            <div style="display: flex; gap: 10px; align-items: end;">
+                <div style="flex: 1;">
+                    <input type="text" name="search"
+                    value="{{ search_query }}"
+                    placeholder="Search items..."
+                    style="width: 100%">
+                </div>
+                <button type="submit" class="btn-primary">Search</button>
+                {% if search_query %}
+                    <a href="{{ url_for('items_list') }}" class="btn-secondary">Clear</a>
+                {% endif %}
+            </div>
+        </form>
+     </div>
+
+     <!-- Items Table -->
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th>Item Name</th>
+                <th>Type</th>
+                <th>Obtained From</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td><strong>{{ item.Item_Name }}</strong></td>
+                <td>{{ item.Item_Type or '-' }}</td>
+                <td>{{ item.Item_Obtained_From or '-' }}</td>
+                <td>
+                    <!-- We'll add Edit/Delete later -->
+                    <a href="#" class="btn-warning small">Edit</a>
+                    <a href="#" class="btn-danger small">Delete</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4">No items found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Add New Item Form (later) -->
+      <div class="card" style="margin-top: 30px;">
+        <h3>Add New Item</h3>
+        <!-- Form will go here in next step -->
+      </div>
+{% endblock %}
+

@@ -5,7 +5,8 @@ Defines the app factory, initializes extentions, and sets up routes.
 
 from flask import Flask, render_template, request, redirect, url_for, flash
 from config import Config
-from models import db, Server, Character, StorageLocations, Items, ItemLocations, CharactersJobLevels
+from models import db, Server, Character, StorageLocations, Items, ItemLocations
+from models import CharactersJobLevels, Jobs
 from sqlalchemy.orm import joinedload
 
 def create_app(config_class=Config):
@@ -130,6 +131,145 @@ def create_app(config_class=Config):
                                title='FFXIV Servers',
                                servers=servers)
 
+    @app.route('/seed_jobs')
+    def seed_jobs():
+        """ Seed the Jobs table with FFXIV job data. """
+        try:
+            jobs_data = [
+                # Tanks
+                {"longname": "Paladin", "shortname": "PLD", "starting": 1, "limited": False, "type": "Tank"},
+                {"longname": "Warrior", "shortname": "WAR", "starting": 1, "limited": False, "type": "Tank"},
+                {"longname": "Dark Knight", "shortname": "DRK", "starting": 30, "limited": False, "type": "Tank"},
+                {"longname": "Gunbreaker", "shortname": "GNB", "starting": 60, "limited": False, "type": "Tank"},
+
+                # Healers
+                {"longname": "White Mage", "shortname": "WHM", "starting": 1, "limited": False, "type": "Healer"},
+                {"longname": "Scholar", "shortname": "SCH", "starting": 1, "limited": False, "type": "Healer"},
+                {"longname": "Astrologian", "shortname": "AST", "starting": 30, "limited": False, "type": "Healer"},
+                {"longname": "Sage", "shortname": "SGE", "starting": 70, "limited": False, "type": "Healer"},
+
+                # Melee DPS
+                {"longname": "Monk", "shortname": "MNK", "starting": 1, "limited": False, "type": "Melee"},
+                {"longname": "Dragoon", "shortname": "DRG", "starting": 1, "limited": False, "type": "Melee"},
+                {"longname": "Ninja", "shortname": "NIN", "starting": 1, "limited": False, "type": "Melee"},
+                {"longname": "Samurai", "shortname": "SAM", "starting": 50, "limited": False, "type": "Melee"},
+                {"longname": "Reaper", "shortname": "RPR", "starting": 70, "limited": False, "type": "Melee"},
+                {"longname": "Viper", "shortname": "VIP", "starting": 80, "limited": False, "type": "Melee"},
+
+                # Ranged Physical
+                {"longname": "Bard", "shortname": "BRD", "starting": 1, "limited": False, "type": "Ranged"},
+                {"longname": "Machinist", "shortname": "MCH", "starting": 30, "limited": False, "type": "Ranged"},
+                {"longname": "Dancer", "shortname": "DNC", "starting": 60, "limited": False, "type": "Ranged"},
+
+                # Magical Ranged
+                {"longname": "Black Mage", "shortname": "BLM", "starting": 1, "limited": False, "type": "Caster"},
+                {"longname": "Summoner", "shortname": "SMN", "starting": 1, "limited": False, "type": "Caster"},
+                {"longname": "Red Mage", "shortname": "RDM", "starting": 1, "limited": False, "type": "Caster"},
+                {"longname": "Blue Mage", "shortname": "BLU", "starting": 1, "limited": True, "type": "Caster"},
+
+                # Crafting
+                {"longname": "Carpenter", "shortname": "CRP", "starting": 1, "limited": False, "type": "Crafting"},
+                {"longname": "Blacksmith", "shortname": "BSM", "starting": 1, "limited": False, "type": "Crafting"},
+                {"longname": "Armorer", "shortname": "ARM", "starting": 1, "limited": False, "type": "Crafting"},
+                {"longname": "Goldsmith", "shortname": "GSM", "starting": 1, "limited": False, "type": "Crafting"},
+                {"longname": "Leatherworker", "shortname": "LTW", "starting": 1, "limited": False, "type": "Crafting"},
+                {"longname": "Weaver", "shortname": "WVR", "starting": 1, "limited": False, "type": "Crafting"},
+                {"longname": "Alchemist", "shortname": "ALC", "starting": 1, "limited": False, "type": "Crafting"},
+                {"longname": "Culinarian", "shortname": "CUL", "starting": 1, "limited": False, "type": "Crafting"},
+
+                # Gathering
+                {"longname": "Miner", "shortname": "MIN", "starting": 1, "limited": False, "type": "Gathering"},
+                {"longname": "Botanist", "shortname": "BTN", "starting": 1, "limited": False, "type": "Gathering"},
+                {"longname": "Fisher", "shortname": "FSH", "starting": 1, "limited": False, "type": "Gathering"},
+            ]
+
+            added = 0
+            for data in jobs_data:
+                existing = Jobs.query.filter_by(Job_Longname=data["longname"]).first()
+                if not existing:
+                    new_job = Jobs(
+                        Job_Longname=data["longname"],
+                        Job_Shortname=data["shortname"],
+                        Starting_Level=data["starting"],
+                        Limited_Job=data["limited"],
+                        Job_Type=data["type"]
+                    )
+                    db.session.add(new_job)
+                    added += 1
+
+            db.session.commit()
+            flash(f'Successfully seeded {added} new jobs.', 'success')
+
+        # pylint: disable=broad-exception-caught
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error seeding jobs: {str(e)}', 'error')
+
+        return redirect(url_for('jobs_list'))
+
+    @app.route('/seed_character_job_levels')
+    def seed_character_job_levels():
+        """ Populate CharactersJobLevels for all playable characters"""
+        try:
+            # Get all playable characters
+            characters = Character.query.filter_by(Playable=True).all()
+
+            # Get all jobs
+            all_jobs = Jobs.query.all()
+
+            added = 0
+            for char in characters:
+                for job in all_jobs:
+                    # check if entry already exists
+                    existing = CharactersJobLevels.query.filter_by(
+                        Character_ID=char.Character_ID,
+                        Job_ID=job.Job_ID
+                    ).first()
+
+                    if not existing:
+                        new_entry = CharactersJobLevels(
+                            Character_ID=char.Character_ID,
+                            Job_ID=job.Job_ID,
+                            Job_Level=0   # 0 = not unlocked yet
+                        )
+                        db.session.add(new_entry)
+                        added += 1
+
+            db.session.commit()
+            flash(f'Successfully added {added} character-job entries.', 'success')
+
+        # pylint: disable=broad-exception-caught
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error seeding character job levels: {str(e)}', 'error')
+
+        return redirect(url_for('characters'))
+
+    @app.route('/items')
+    def items_list():
+        """ Display all items with search functionality """
+        search_query = request.args.get('search', '').strip()
+
+        query = Items.query
+
+        if search_query:
+            query = query.filter(Items.Item_Name.ilike(f'%{search_query}%'))
+
+        all_items = query.order_by(Items.Item_Name).all()
+
+        return render_template('items.html',
+                               title='All Items',
+                               items=all_items,
+                               search_query=search_query)
+
+    @app.route('/jobs')
+    def jobs_list():
+        """Display all jobs in the game."""
+        all_jobs = Jobs.query.order_by(Jobs.Job_Type, Jobs.Job_Longname).all()
+        return render_template('jobs.html',
+                               title='FFXIV Jobs',
+                               jobs=all_jobs)
+
     # pylint: disable=unused-variable
     @app.route('/edit_character/<int:char_id>')
     def edit_character(char_id):
@@ -173,6 +313,40 @@ def create_app(config_class=Config):
             db.session.rollback()
             flash(f'Error deleting character: {str(e)}', 'error')
         return redirect(url_for('characters'))
+
+    @app.route('/update_job_level/<int:char_id>/<int:job_id>', methods=['POST'])
+    def update_job_level(char_id, job_id):
+        try:
+            new_level = int(request.form.get('job_level', 0))
+
+            # Find or create the CharactersJobLevels entry
+            job_entry = CharactersJobLevels.query.filter_by(
+                Character_ID=char_id,
+                Job_ID=job_id
+            ).first()
+
+            if not job_entry:
+                # Create new entry if character doesn't have the job yet
+                job_entry = CharactersJobLevels(
+                    Character_ID=char_id,
+                    Job_ID=job_id,
+                    Job_Level=new_level
+                )
+                db.session.add(job_entry)
+            else:
+                job_entry.Job_Level = new_level
+
+            db.session.commit()
+            flash('Job level updated successfully.', 'success')
+
+        except ValueError:
+            flash('Invalid level updated successfully!', 'error')
+        # pylint: disable=broad-exception-caught
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating job level: {str(e)}', 'error')
+
+        return redirect(url_for('character_detail', char_id=char_id))
 
     # pylint: disable=unused-variable
     @app.route('/add_item_to_storage/<int:storage_id>', methods=['POST'])

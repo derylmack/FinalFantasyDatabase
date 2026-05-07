@@ -140,24 +140,52 @@
     </div>
 
     <h2>Job Levels</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Job</th>
-                <th>Level</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for job_level in character.characters_job_levels %}
-            <tr>
-                <td>{{ job_level.job.Job_Longname }} ({{ job_level.job.Job_Shortname }})</td>
-                <td>{{ job_level.Job_Level or 'Not Set' }}</td>
-                <td><!-- update for will go here --></td>
+
+    {% for category in ['Tank', 'Healer', 'Melee', 'Ranged', 'Caster', 'Crafting', 'Gathering'] %}
+        {% set category_jobs = character.characters_job_levels | selectattr('job.Job_Type', 'equalto', category) | list %}
+        {% if category_jobs %}
+            <h3>{{ category }}</h3>
+            <table class="job-table">
+                <thead>
+                    <tr>
+                        <th>Job</th>
+                        <th>Current Level</th>
+                        <th>Update Level</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job_level in category_jobs %}
+                    <tr>
+                        <td>
+                            <strong>{{ job_level.job.Job_Longname }}</strong>
+                            <small>({{ job_level.job.Job_Shortname }})</small>
+                        </td>
+                        <td style="font-weight: bold; width: 80px;">
+                            {{ job_level.Job_Level if job_level.Job_Level > 0 else '-' }}
+                        </td>
+                        <td>
+                            <form method="POST" action="{{ url_for('update_job_level',
+                                                                    char_id=character.Character_ID,
+                                                                    job_id=job_level.Job_ID) }}"
+                                                style="display: inline;">
+                        <input type="number" name="job_level"
+                                value="{{ job_level.Job_Level or ''}}"
+                                min="0" max="100" style="width: 70px;">
+                        <button type="submit" class="btn-primary small">Save</button>
+
+                        <!-- Quick Buttons -->
+                         <button type="button" onclick="setQuickLevel(this,0)" class="small">0</button>
+                         <button type="button" onclick="setQuickLevel(this,0)" class="small">50</button>
+                         <button type="button" onclick="setQuickLevel(this,0)" class="small">80</button>
+                         <button type="button" onclick="setQuickLevel(this,0)" class="small">100</button>
+                    </form>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+{% endif %}
+{% endfor %}
 
     <br>
     <a href="{{ url_for('characters') }}" class="btn-secondary">← Back to All Characters</a>
@@ -188,6 +216,19 @@ function toggleEditForm(btn) {
         btn.textContent = 'Edit Qty';
         btn.classList.remove('btn-secondary');
         btn.classList.add('btn-warning');
+    }
+}
+</script>
+
+<script>
+function setQuickLevel(btn, level) {
+    const form = btn.closest('form');
+    if (form) {
+        const input = form.querySelector('input[name="job_level"]');
+        if (input) {
+            input.value = level;
+            form.submit();   // Auto-save
+        }
     }
 }
 </script>
