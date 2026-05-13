@@ -52,7 +52,8 @@
                                         </span>
 
                                         <!-- Action Buttons -->
-                                        <!-- <button onclick="alert('Ediut button clicked!')" class="btn-warning small">Edit Qty</button> -->
+                                        <button onclick="showMoveForm(this)", class="btn-secondary small">Move</button>
+                                        <!-- <button onclick="alert('Edit button clicked!')" class="btn-warning small">Edit Qty</button> -->
                                         <button onclick="toggleEditForm(this)" class="btn-warning small">Edit Qty</button>
 
                                         <form method="POST"
@@ -82,7 +83,34 @@
                                             </div>
                                         </form>
                                      </div>
-                                    </li>
+                                    <!-- Hidden Move Form -->
+                                    <div class="move-form" style="display: none; margin-top: 12px; padding: 15px; background: #f0f8ff; border-radius: 8px;">
+                                        <form method="POST" action="{{ url_for('move_item', storage_id=loc.Storage_ID, item_id=item_loc.Item_ID) }}">
+                                            <input type="hidden" name="char_id" value="{{ character.Character_ID }}">
+
+                                            <label>Move to Storage:</label>
+                                            <select name="target_storage_id" required>
+                                                {% for other_loc in character.storage_locations %}
+                                                    {% if other_loc.Storage_ID != loc.Storage_ID %}
+                                                        <option value="{{ other_loc.Storage_ID }}">{{ other_loc.Storage_Location}}</option>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>
+
+                                            <div style="display: flex; gap: 15px; margin-top: 10px;">
+                                                <div>
+                                                    <label>Normal Qty to Move</label>
+                                                    <input type="number" name="normal_quantity" value="0" min="0" style="width: 90px">
+                                                </div>
+                                                <div>
+                                                    <label>HQ Qty to Move</label>
+                                                    <input type="number" name="hq_quantity" value="0" min="0" style="width: 90px">
+                                                </div>
+                                                <button type="submit" class="btn=primary small" style="margin-top: 20px;">Move Item</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </li>
                                 {% endfor %}
                                 </ul>
                             {% else %}
@@ -229,6 +257,16 @@ function setQuickLevel(btn, level) {
             input.value = level;
             form.submit();   // Auto-save
         }
+    }
+}
+</script>
+
+<script>
+function showMoveForm(btn) {
+    const row = btn.closest('.item-row');
+    const moveForm = row.querySelector('.move-form');
+    if (moveForm) {
+        moveForm.style.dispay = moveForm.style.display === 'none' ? 'block' : 'none';
     }
 }
 </script>

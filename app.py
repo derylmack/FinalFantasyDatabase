@@ -250,7 +250,11 @@ def create_app(config_class=Config):
         """ Display all items with search functionality """
         search_query = request.args.get('search', '').strip()
 
-        query = Items.query
+        query = Items.query.options(
+            joinedload(Items.item_locations)
+                .joinedload(ItemLocations.storage)
+                .joinedload(StorageLocations.character)
+        )
 
         if search_query:
             query = query.filter(Items.Item_Name.ilike(f'%{search_query}%'))
@@ -261,6 +265,160 @@ def create_app(config_class=Config):
                                title='All Items',
                                items=all_items,
                                search_query=search_query)
+
+    @app.route('/add_item', methods=['POST'])
+    def add_item():
+        """Add a new item to the master Items Table"""
+        try:
+            item_name = request.form.get('item_name', '').strip()
+            item_type = request.form.get('item_type', '').strip()
+            obtained_from = request.form.get('obtained_from', '').strip()
+
+            if not item_name:
+                flash('Item name is required.', 'error')
+                return redirect(url_for('items_list'))
+
+            # Checkif item already exists
+            existing = Items.query.filter(Items.Item_Name.ilike(item_name)).first()
+            if existing:
+                flash(f'Item "{item_name}" already exists.', 'error')
+                return redirect(url_for('items_list'))
+
+            new_item = Items(
+                Item_Name=item_name,
+                Item_Type=item_type or None,
+                Item_Obtained_From=obtained_from or None
+            )
+
+            db.session.add(new_item)
+            db.session.commit()
+
+            flash(f'Item "{item_name}" added successfully.', 'success')
+
+        # pylint: disable=broad-exception-caught
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error adding item: {str(e)}', 'error')
+
+        return redirect(url_for('items_list'))
+
+    @app.route('/edit_item/<int:item_id>', methods=['GET', 'POST'])
+    def edit_item(item_id):
+        """Edit an existing item """
+        item = Items.query.get_or_404(item_id)
+
+        if request.method == 'POST':
+            try:
+                item.Item_Name = request.form.get('item_name', '').strip()
+                item.Item_Type = request.form.get('item_type', '').strip() or None
+                item.Item_Obtained_From = request.form.get('obtained_from', '').strip() or None
+
+                db.session.commit()
+                flash(f'Item "{item.Item_Name}" updated successfully', 'success')
+                return redirect(url_for('items_list'))
+
+            # pylint: disable=broad-exception-caught
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error updating item: {str(e)}', 'error')
+
+        return render_template('edit_item.html', item=item)
+
+    @app.route('/delete_item/<int:item_id>', methods=['POST'])
+    def delete_item(item_id):
+        """Delete an item from the master list."""
+        try:
+            item=Items.query.get_or_404(item_id)
+            item_name = item.Item.Name
+
+            db.session.delete(item)
+            db.session.commit()
+            flash(f'Item "{item_name}" deleted successfully.', 'success')
+
+        # pylint: disable=broad-exception-caught
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error deleteing item: {str(e)}', 'error')
+
+        return redirect(url_for('items_list'))
+
+    @app.route('/move_item/<int:storage_id>/<int:item_id>', methods =['POST'])
+    def move_item(storage_id, item_id):
+        """Move an item (or part of its quantity) from on storage to another """
+        try:
+            char_id = int(request.form.get('char_id'))
+            target_storage_id = int(request.form.get('target_storage_id'))
+            normal_to_move = int(request.form.get('normal_quantity', 0))
+            hq_to_move = int(request.form_get('hq_quantity', 0))
+
+            if not char_id or not target_storage_id:
+                flash('Missing required information.', 'error')
+                return redirect(url_for('character_detail', char_id=char_id))
+
+            if normal_to_move < 0 or hq_to_move < 0:
+                flash('Cannot move negative quantities.', 'error')
+                return redirect(url_for('character_detail', char_id=char_id))
+
+            # Get the source item location
+            source = ItemLocations.query.filter_by(
+                Storage_ID=storage_id,
+                Item_ID=item_id
+            ).first_or_404()
+
+            # Check if target storage exists for this character
+            target_storage = StorageLocations.query.filter_by(
+                Storage_ID=target_storage_id,
+                Character_ID=char_id
+            ).first()
+
+            if not target_storage:
+                flash('Target storage not found.', 'error')
+                return redirect(url_for('character_detail', char_id=char_id))
+
+            # Check available quantity
+            if normal_to_move > (source.Quantity or 0) or hq_to_move > (source.Quantity_HQ or 0):
+                flash('Not enough quantity to move.', 'error')
+                return redirect(url_for('character_detail', char_id=char_id))
+
+            # Find or create target ItemLocation
+            target = ItemLocations.query.filter_by(
+                Storage_ID=target_storage_id,
+                Item_ID=item_id
+            ).first()
+
+            if not target:
+                target = ItemLocations(
+                    Item_ID=item_id,
+                    Storage_ID=target_storage_id,
+                    Quantity=0,
+                    Quantity_HQ=0
+                )
+                db.session.add(target)
+
+            # Perform the move
+            if normal_to_move > 0:
+                source.Quantity = (source.Quantity or 0) - normal_to_move
+                target.Quantity = (target.Quantity or 0) + normal_to_move
+
+            if hq_to_move > 0:
+                source.Quantity_HQ = (source.Quantity_HQ or 0) - hq_to_move
+                target.Quantity_HQ = (target.Quantity_HQ or 0) + hq_to_move
+
+            # Clean up source if quantity reaches zero
+            if (source.Quantity or 0) <= 0 and (source.Quantity_HQ or 0) <= 0:
+                db.session.delete(source)
+
+            db.session.commit()
+            flash('Item move successfully', 'success')
+
+        except ValueError:
+            flash('Invalid quantity entered.', 'error')
+        # pylint: disable=broad-exception-caught
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error moving item: {str(e)}', 'error')
+
+        return redirect(url_for('character_detail', char_id=char_id))
 
     @app.route('/jobs')
     def jobs_list():
