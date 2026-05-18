@@ -52,17 +52,19 @@
                                         </span>
 
                                         <!-- Action Buttons -->
-                                        <button onclick="showMoveForm(this)", class="btn-secondary small">Move</button>
-                                        <!-- <button onclick="alert('Edit button clicked!')" class="btn-warning small">Edit Qty</button> -->
-                                        <button onclick="toggleEditForm(this)" class="btn-warning small">Edit Qty</button>
+                                        <div class="item-actions">
+                                            <button onclick="showMoveForm(this)", class="btn-secondary small">Move</button>
+                                            <!-- <button onclick="alert('Edit button clicked!')" class="btn-warning small">Edit Qty</button> -->
+                                            <button onclick="toggleEditForm(this)" class="btn-warning small">Edit Qty</button>
 
-                                        <form method="POST"
-                                            action="{{ url_for('remove_item_from_storage', storage_id=loc.Storage_ID, item_id=item_loc.Item_ID) }}"
-                                            style="display: inline;"
-                                            onsubmit="return confirm('Remove {{ item_loc.item.Item_Name }} from this storage?')">
-                                            <input type="hidden" name="char_id" value="{{ character.Character_ID }}">
-                                            <button type="submit" class="btn-danger small">Remove</button>
-                                        </form>
+                                            <form method="POST"
+                                              action="{{ url_for('remove_item_from_storage', storage_id=loc.Storage_ID, item_id=item_loc.Item_ID) }}"
+                                               style="display: inline;"
+                                               onsubmit="return confirm('Remove {{ item_loc.item.Item_Name }} from this storage?')">
+                                              <input type="hidden" name="char_id" value="{{ character.Character_ID }}">
+                                              <button type="submit" class="btn-danger small">Remove</button>
+                                            </form>
+                                        </div>
 
                                     <!-- Hidden Edit Quantity Form -->
                                      <div class="edit-qty-form" style="display: none; margin-top: 12px; padding: 15px; background: #f0f8ff; border-radius: 8px;">
@@ -84,29 +86,44 @@
                                         </form>
                                      </div>
                                     <!-- Hidden Move Form -->
-                                    <div class="move-form" style="display: none; margin-top: 12px; padding: 15px; background: #f0f8ff; border-radius: 8px;">
+                                    <div class="move-form" style="display: none; margin-top: 12px; padding: 15px; background: #f0f8ff; border-radius: 8px; border: 2px solid #007bff;">
                                         <form method="POST" action="{{ url_for('move_item', storage_id=loc.Storage_ID, item_id=item_loc.Item_ID) }}">
                                             <input type="hidden" name="char_id" value="{{ character.Character_ID }}">
 
-                                            <label>Move to Storage:</label>
-                                            <select name="target_storage_id" required>
-                                                {% for other_loc in character.storage_locations %}
-                                                    {% if other_loc.Storage_ID != loc.Storage_ID %}
-                                                        <option value="{{ other_loc.Storage_ID }}">{{ other_loc.Storage_Location}}</option>
-                                                    {% endif %}
-                                                {% endfor %}
-                                            </select>
+                                            <div style="display: grid; grid-template-columns: 160px 160px  85px 85px auto; gap: 12px; align-items: end;">
+                                                <!-- Target Character -->
+                                                <div>
+                                                    <label style="font-size: 0.85em; font-weight: 600;">To Character:</label>
+                                                    <select name="target_char_id" required style="width:100%" onchange="loadTargetStorages(this)">
+                                                        <opiton value="">-- Select Character --</opiton>
+                                                        {% for other_char in all_characters if other_char.Character_ID != character.Character_ID %}
+                                                            <option value="{{ other_char.Character_ID }}">{{ other_char.Character_Name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
 
-                                            <div style="display: flex; gap: 15px; margin-top: 10px;">
+                                                <!-- Target Storage -->
                                                 <div>
-                                                    <label>Normal Qty to Move</label>
-                                                    <input type="number" name="normal_quantity" value="0" min="0" style="width: 90px">
+                                                    <label style="font-size: 0.85em; font-weight: 600;">To Storage:</label>
+                                                    <select name="target_storage_id" required style="width: 100%" id="target_storage_select">
+                                                        <option value="">-- Select storage --</option>
+                                                    </select>
                                                 </div>
+
                                                 <div>
-                                                    <label>HQ Qty to Move</label>
-                                                    <input type="number" name="hq_quantity" value="0" min="0" style="width: 90px">
+                                                    <label style="font-size: 0.85em;font-weight: 600;">Normal</label>
+                                                    <input type="number" name="normal_quantity" value="0" min="0" max="9999" style="width:100%;">
                                                 </div>
-                                                <button type="submit" class="btn=primary small" style="margin-top: 20px;">Move Item</button>
+
+                                                <div>
+                                                    <label style=font-size:0.85em; font-weight: 600;>HQ</label>
+                                                    <input type="number" name="hq_quantity" value="0" min="0" max="9999" style="width: 100%;">
+                                                </div>
+
+                                                <div style="display: flex; gap: 6px; padding-top: 20px;">
+                                                    <button type="submit" class="btn-primary small">Move</button>
+                                                    <button type="button" onclick="hideMoveForm(this)" class="btn-secondary small">Cancel</button>
+                                                </div>
                                             </div>
                                         </form>
                                     </div>
@@ -266,8 +283,42 @@ function showMoveForm(btn) {
     const row = btn.closest('.item-row');
     const moveForm = row.querySelector('.move-form');
     if (moveForm) {
-        moveForm.style.dispay = moveForm.style.display === 'none' ? 'block' : 'none';
+        moveForm.style.display = moveForm.style.display === 'none' ? 'block' : 'none';
     }
 }
+</script>
+
+<script>
+function hideMoveForm(btn) {
+    const form = btn.closest('.move-form');
+    if (form) form.style.display = 'none';
+}
+</script>
+
+<script>
+function loadTargetStorages(selectElement) {
+    const moveForm = selectElement.closest('.move-form');
+    const targetStorageSelect = moveForm.querySelector('[name="target_storage_id"]');
+    targetStorageSelect.innerHTML = '<option value="">-- Select storage --</option>';
+
+    if (!selectElement.value) return;
+
+    // Get storages for the selected character (data passed from backend)
+    const charStorages = window.allCharacterStorages ? window.allCharacterStorages[selectElement.value] : [];
+
+    charStorages.forEach(storage => {
+        const option = document.createElement('option');
+        option.value = storage.id;
+        option.textContent = storage.name;
+        targetStorageSelect.appendChild(option);
+    });
+}
+</script>
+
+<script type="application/json" id="character-storages-data">
+    {{ character_storages | tojson | safe }}
+</script>
+<script>
+    window.allCharacterStorages = JSON.parse(document.getElementById('character-storages-data').textContent);
 </script>
 {% endblock %}

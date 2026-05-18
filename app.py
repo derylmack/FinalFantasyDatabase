@@ -88,12 +88,21 @@ def create_app(config_class=Config):
         storages = StorageLocations.query.filter_by(Character_ID=char_id)\
             .order_by(StorageLocations.Storage_Location).all()
 
-        # Optional: Pre-load items for each storage (you can do it here or in template)
+        all_characters = Character.query.order_by(Character.Character_Name).all()
+
+        character_storages = {}
+        for char in all_characters:
+            character_storages[char.Character_ID] = [
+                {"id": loc.Storage_ID, "name": loc.Storage_Location}
+                for loc in char.storage_locations
+            ]
 
         return render_template('character_detail.html',
                                title=f"{character.Character_Name}'s Details",
                                character=character,
-                               storages=storages)
+                               storages=storages,
+                               all_characters=all_characters,
+                               character_storages=character_storages)
 
     @app.route('/add_storage_location/<int:char_id>', methods=['POST'])
     def add_storage_location(char_id):
@@ -137,50 +146,82 @@ def create_app(config_class=Config):
         try:
             jobs_data = [
                 # Tanks
-                {"longname": "Paladin", "shortname": "PLD", "starting": 1, "limited": False, "type": "Tank"},
-                {"longname": "Warrior", "shortname": "WAR", "starting": 1, "limited": False, "type": "Tank"},
-                {"longname": "Dark Knight", "shortname": "DRK", "starting": 30, "limited": False, "type": "Tank"},
-                {"longname": "Gunbreaker", "shortname": "GNB", "starting": 60, "limited": False, "type": "Tank"},
+                {"longname": "Paladin", "shortname": "PLD", "starting": 1,
+                    "limited": False, "type": "Tank"},
+                {"longname": "Warrior", "shortname": "WAR", "starting": 1,
+                    "limited": False, "type": "Tank"},
+                {"longname": "Dark Knight", "shortname": "DRK", "starting": 30,
+                    "limited": False, "type": "Tank"},
+                {"longname": "Gunbreaker", "shortname": "GNB", "starting": 60,
+                    "limited": False, "type": "Tank"},
 
                 # Healers
-                {"longname": "White Mage", "shortname": "WHM", "starting": 1, "limited": False, "type": "Healer"},
-                {"longname": "Scholar", "shortname": "SCH", "starting": 1, "limited": False, "type": "Healer"},
-                {"longname": "Astrologian", "shortname": "AST", "starting": 30, "limited": False, "type": "Healer"},
-                {"longname": "Sage", "shortname": "SGE", "starting": 70, "limited": False, "type": "Healer"},
+                {"longname": "White Mage", "shortname": "WHM", "starting": 1,
+                    "limited": False, "type": "Healer"},
+                {"longname": "Scholar", "shortname": "SCH", "starting": 1,
+                    "limited": False, "type": "Healer"},
+                {"longname": "Astrologian", "shortname": "AST", "starting": 30,
+                    "limited": False, "type": "Healer"},
+                {"longname": "Sage", "shortname": "SGE", "starting": 70,
+                    "limited": False, "type": "Healer"},
 
                 # Melee DPS
-                {"longname": "Monk", "shortname": "MNK", "starting": 1, "limited": False, "type": "Melee"},
-                {"longname": "Dragoon", "shortname": "DRG", "starting": 1, "limited": False, "type": "Melee"},
-                {"longname": "Ninja", "shortname": "NIN", "starting": 1, "limited": False, "type": "Melee"},
-                {"longname": "Samurai", "shortname": "SAM", "starting": 50, "limited": False, "type": "Melee"},
-                {"longname": "Reaper", "shortname": "RPR", "starting": 70, "limited": False, "type": "Melee"},
-                {"longname": "Viper", "shortname": "VIP", "starting": 80, "limited": False, "type": "Melee"},
+                {"longname": "Monk", "shortname": "MNK", "starting": 1,
+                    "limited": False, "type": "Melee"},
+                {"longname": "Dragoon", "shortname": "DRG", "starting": 1,
+                    "limited": False, "type": "Melee"},
+                {"longname": "Ninja", "shortname": "NIN", "starting": 1,
+                    "limited": False, "type": "Melee"},
+                {"longname": "Samurai", "shortname": "SAM", "starting": 50,
+                    "limited": False, "type": "Melee"},
+                {"longname": "Reaper", "shortname": "RPR", "starting": 70,
+                    "limited": False, "type": "Melee"},
+                {"longname": "Viper", "shortname": "VIP", "starting": 80,
+                    "limited": False, "type": "Melee"},
 
                 # Ranged Physical
-                {"longname": "Bard", "shortname": "BRD", "starting": 1, "limited": False, "type": "Ranged"},
-                {"longname": "Machinist", "shortname": "MCH", "starting": 30, "limited": False, "type": "Ranged"},
-                {"longname": "Dancer", "shortname": "DNC", "starting": 60, "limited": False, "type": "Ranged"},
+                {"longname": "Bard", "shortname": "BRD", "starting": 1,
+                    "limited": False, "type": "Ranged"},
+                {"longname": "Machinist", "shortname": "MCH", "starting": 30,
+                    "limited": False, "type": "Ranged"},
+                {"longname": "Dancer", "shortname": "DNC", "starting": 60,
+                    "limited": False, "type": "Ranged"},
 
                 # Magical Ranged
-                {"longname": "Black Mage", "shortname": "BLM", "starting": 1, "limited": False, "type": "Caster"},
-                {"longname": "Summoner", "shortname": "SMN", "starting": 1, "limited": False, "type": "Caster"},
-                {"longname": "Red Mage", "shortname": "RDM", "starting": 1, "limited": False, "type": "Caster"},
-                {"longname": "Blue Mage", "shortname": "BLU", "starting": 1, "limited": True, "type": "Caster"},
+                {"longname": "Black Mage", "shortname": "BLM", "starting": 1,
+                    "limited": False, "type": "Caster"},
+                {"longname": "Summoner", "shortname": "SMN", "starting": 1,
+                    "limited": False, "type": "Caster"},
+                {"longname": "Red Mage", "shortname": "RDM", "starting": 1,
+                    "limited": False, "type": "Caster"},
+                {"longname": "Blue Mage", "shortname": "BLU", "starting": 1,
+                    "limited": True, "type": "Caster"},
 
                 # Crafting
-                {"longname": "Carpenter", "shortname": "CRP", "starting": 1, "limited": False, "type": "Crafting"},
-                {"longname": "Blacksmith", "shortname": "BSM", "starting": 1, "limited": False, "type": "Crafting"},
-                {"longname": "Armorer", "shortname": "ARM", "starting": 1, "limited": False, "type": "Crafting"},
-                {"longname": "Goldsmith", "shortname": "GSM", "starting": 1, "limited": False, "type": "Crafting"},
-                {"longname": "Leatherworker", "shortname": "LTW", "starting": 1, "limited": False, "type": "Crafting"},
-                {"longname": "Weaver", "shortname": "WVR", "starting": 1, "limited": False, "type": "Crafting"},
-                {"longname": "Alchemist", "shortname": "ALC", "starting": 1, "limited": False, "type": "Crafting"},
-                {"longname": "Culinarian", "shortname": "CUL", "starting": 1, "limited": False, "type": "Crafting"},
+                {"longname": "Carpenter", "shortname": "CRP", "starting": 1,
+                    "limited": False, "type": "Crafting"},
+                {"longname": "Blacksmith", "shortname": "BSM", "starting": 1,
+                    "limited": False, "type": "Crafting"},
+                {"longname": "Armorer", "shortname": "ARM", "starting": 1,
+                    "limited": False, "type": "Crafting"},
+                {"longname": "Goldsmith", "shortname": "GSM", "starting": 1,
+                    "limited": False, "type": "Crafting"},
+                {"longname": "Leatherworker", "shortname": "LTW", "starting": 1,
+                    "limited": False, "type": "Crafting"},
+                {"longname": "Weaver", "shortname": "WVR", "starting": 1,
+                    "limited": False, "type": "Crafting"},
+                {"longname": "Alchemist", "shortname": "ALC", "starting": 1,
+                    "limited": False, "type": "Crafting"},
+                {"longname": "Culinarian", "shortname": "CUL", "starting": 1,
+                    "limited": False, "type": "Crafting"},
 
                 # Gathering
-                {"longname": "Miner", "shortname": "MIN", "starting": 1, "limited": False, "type": "Gathering"},
-                {"longname": "Botanist", "shortname": "BTN", "starting": 1, "limited": False, "type": "Gathering"},
-                {"longname": "Fisher", "shortname": "FSH", "starting": 1, "limited": False, "type": "Gathering"},
+                {"longname": "Miner", "shortname": "MIN", "starting": 1,
+                    "limited": False, "type": "Gathering"},
+                {"longname": "Botanist", "shortname": "BTN", "starting": 1,
+                    "limited": False, "type": "Gathering"},
+                {"longname": "Fisher", "shortname": "FSH", "starting": 1,
+                    "limited": False, "type": "Gathering"},
             ]
 
             added = 0
@@ -346,18 +387,19 @@ def create_app(config_class=Config):
     def move_item(storage_id, item_id):
         """Move an item (or part of its quantity) from on storage to another """
         try:
-            char_id = int(request.form.get('char_id'))
+            source_char_id = int(request.form.get('char_id'))
+            target_char_id = int(request.form.get('target_char_id'))
             target_storage_id = int(request.form.get('target_storage_id'))
             normal_to_move = int(request.form.get('normal_quantity', 0))
-            hq_to_move = int(request.form_get('hq_quantity', 0))
+            hq_to_move = int(request.form.get('hq_quantity', 0))
 
-            if not char_id or not target_storage_id:
+            if not source_char_id or not target_storage_id:
                 flash('Missing required information.', 'error')
-                return redirect(url_for('character_detail', char_id=char_id))
+                return redirect(url_for('character_detail', char_id=source_char_id))
 
             if normal_to_move < 0 or hq_to_move < 0:
                 flash('Cannot move negative quantities.', 'error')
-                return redirect(url_for('character_detail', char_id=char_id))
+                return redirect(url_for('character_detail', char_id=source_char_id))
 
             # Get the source item location
             source = ItemLocations.query.filter_by(
@@ -368,17 +410,17 @@ def create_app(config_class=Config):
             # Check if target storage exists for this character
             target_storage = StorageLocations.query.filter_by(
                 Storage_ID=target_storage_id,
-                Character_ID=char_id
+                Character_ID=target_char_id
             ).first()
 
             if not target_storage:
                 flash('Target storage not found.', 'error')
-                return redirect(url_for('character_detail', char_id=char_id))
+                return redirect(url_for('character_detail', char_id=target_char_id))
 
             # Check available quantity
             if normal_to_move > (source.Quantity or 0) or hq_to_move > (source.Quantity_HQ or 0):
                 flash('Not enough quantity to move.', 'error')
-                return redirect(url_for('character_detail', char_id=char_id))
+                return redirect(url_for('character_detail', char_id=source_char_id))
 
             # Find or create target ItemLocation
             target = ItemLocations.query.filter_by(
@@ -418,7 +460,7 @@ def create_app(config_class=Config):
             db.session.rollback()
             flash(f'Error moving item: {str(e)}', 'error')
 
-        return redirect(url_for('character_detail', char_id=char_id))
+        return redirect(url_for('character_detail', char_id=source_char_id))
 
     @app.route('/jobs')
     def jobs_list():

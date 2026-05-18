@@ -62,6 +62,7 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             padding: 20px;
             margin-bottom: 25px;
+            min-width: 420px;
         }
 
         /* Make buttons wrap nicely on smaller screens */
@@ -73,7 +74,7 @@
 
         .cards-container {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(460px, 1fr));
             gap: 20px;
         }
 
@@ -356,7 +357,25 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px 12px
+            padding: 10px 12px;
+            gap: 12px;
+            flex-wrap: wrap;
+            min-height: 52px;
+        }
+
+        .item-row .small {
+            padding: 5px 10px;
+            font-size: 0.85em;
+            white-space: nowrap;
+        }
+
+
+
+        .item-row .btn-warning,
+        .item-row .btn-danger,
+        .item-row .btn-secondary {
+            margin-left: 6px;
+            margin-bottom: 4px;
         }
 
         .item-row:last-child {
@@ -365,10 +384,12 @@
 
         .item-name {
             flex: 1;
+            min-width: 160px;
         }
 
         .item-qty {
-            margin-right: 15px;
+            white-space: nowrap;
+            min-width: 110px;
             font-weight: 500;
         }
 
@@ -388,6 +409,16 @@
             padding: 4px 10px;
             font-size: 0.85em;
         }
+
+        /* Button Group */
+        .item-actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+        }
+
+
 
         .job-table {
             width: 100%;
@@ -420,6 +451,26 @@
             padding: 4px;
             font-size: 0.8em;
             margin-left: 4px;
+        }
+
+        .move-form,
+        .edit-qty-form {
+            flex-basis: 100%;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .move-form {
+            border: 2px solid #007bff;
+            background: #f0f8ff;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .move-form select,
+        .move-form input[type="number"] {
+            padding: 7px 8px;
+            font-size: 0.95em;
         }
     </style>
 
