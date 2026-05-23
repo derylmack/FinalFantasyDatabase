@@ -3,38 +3,50 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-    <h1>Edit Character</h1>
+    <div class="container">
+        <h2>Edit Character</h2>
 
-    <div class="card">
-        <form method="POST">
-            <div class="form-group">
-                <label for="character_name">Character Name</label>
-                <input type="text" id="character_name" name="character_name"
-                        value="{{ character.Character_Name }}" required>
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Character Name</label>
+                            <input type="text" id="character_name" name="character_name"
+                                    value="{{ character.Character_Name }}" required
+                                    class="form-control">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class=form-label fw-bold">Server</label>
+                            <select id="server_id" name= "server_id" class="form-select" required>
+                                {% for server in servers %}
+                                    <option value="{{ server.Server_ID }}"
+                                            {% if server.Server_ID == character.Server_ID %}selected{% endif %}>
+                                        {{ server.Server_Name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input type="checkbox" name="playable" value="1"
+                                        class="form-check-input"
+                                        {% if character.Playable %}checked{% endif %}>
+                                <label class="form-check-label fw-bold">
+                                    This character is playable
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary me-2">Save Changes</button>
+                        <a href="{{ url_for('characters') }}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
             </div>
-
-            <div class="form-group">
-                <label for="server_id">Server</label>
-                <select id="server_id" name= "server_id" required>
-                    {% for server in servers %}
-                        <option value="{{ server.Server_ID }}"
-                                {% if server.Server_ID == character.Server_ID %}selected{% endif %}>
-                            {{ server.Server_Name }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="form-group checkbox-group">
-                <label>
-                    <input type="checkbox" name="playable" value="1"
-                            {% if character.Playable %}checked{% endif %}>
-                    This character is playable
-                </label>
-            </div>
-
-            <button type="submit" class="btn-primary">Save Changes</button>
-            <a href="{{ url_for('characters') }}" class="btn-secondary">Cancel</a>
-        </form>
+        </div>
     </div>
 {% endblock %}

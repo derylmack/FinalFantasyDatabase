@@ -6,7 +6,7 @@ Defines the app factory, initializes extentions, and sets up routes.
 from flask import Flask, render_template, request, redirect, url_for, flash
 from config import Config
 from models import db, Server, Character, StorageLocations, Items, ItemLocations
-from models import CharactersJobLevels, Jobs
+from models import CharactersJobLevels, Jobs, Recipes, Ingredients
 from sqlalchemy.orm import joinedload
 
 def create_app(config_class=Config):
@@ -703,6 +703,98 @@ def create_app(config_class=Config):
 
         output += "</ul>"
         return output
+
+    # pylint: disable=unused-variable
+    @app.route('/seed_recipes')
+    def seed_recipes():
+        """Seed the Recipes and Ingredients tables with sample FFXIV data"""
+        try:
+            # Example recipes
+            recipes_data= [
+                {"name": "Iron Ingot", "job_name": "Blacksmith", "level": 15 },
+                {"name": "Copper Ingot", "job_name": "Blacksmith", "level": 1 },
+                {"name": "Steel Ingot", "job_name": "Blacksmith", "level": 20 },
+                {"name": "Potion", "job_name": "Alchemist", "level": 1 },
+                {"name": "Hi-Potion", "job_name": "Alchemist", "level": 15},
+            ]
+
+            recipes_ingredients = {
+                "Copper Ingot": [
+                    {"item_name": "Copper Ore", "quantity": 1}
+                ],
+                "Iron Ingot": [
+                    {"item_name": "Iron Ore", "quantity": 2}
+                ],
+                "Potion": [
+                    {"item_name": "Distilled Water", "quantity": 2},
+                    {"item_name": "Mistletoe", "quantity": 1}
+                ],
+                "Hi-Potion": [
+                    {"item_name": "Distilled Water", "quantity": 3},
+                    {"item_name": "Mistletoe", "quantity": 2}
+                ]
+            }
+
+            added_recipes = 0
+            added_ingredients = 0
+
+            for recipe_name, ingredients in recipes_ingredients.items():
+                recipe = Recipes.query.filter_by(Recipe_Name=recipe_name).first()
+                if not recipe:
+                    job = Jobs.query.filter(Jobs.Job_Longname.like('%smith%') |
+                                            Jobs.Job_Longname.like('%penter%') |
+                                            Jobs.Job_Longname.like('%chemist%')).first()
+                    if not job:
+                        continue
+
+                    new_recipe = Recipes(
+                        Recipe_Name=recipe_name,
+                        Job_ID=job.Job_ID,
+                        Required_Level=1
+                    )
+                    db.session.add(new_recipe)
+                    added_recipes += 1
+
+                for ing in ingredients:
+                    item=Items.query.filter_by(Item_Name=ing["item_name"]).first()
+                    if not item:
+                        item = Items(Item_Name=ing["item_name"])
+                        db.session.add(item)
+                        db.session.flush()
+
+                    # Check if ingredient already exists
+                    existing = Ingredients.query.filter_by(
+                        Recipe_ID=recipe.Recipe_ID,
+                        Item_ID=item.Item_ID
+                    ).first()
+
+                    if not existing:
+                        new_ing = Ingredients(
+                            Recipe_ID=recipe.Recipe_ID,
+                            Item_ID=item.Item_ID,
+                            Quantity=ing["quantity"]
+                        )
+                        db.session.add(new_ing)
+                        added_ingredients += 1
+
+            db.session.commit()
+            flash(f'Successfully seeded {added_ingredients} recipes.', 'success')
+
+        # pylint: disable=broad-exception-caught
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error seeding recipes: {str(e)}', 'error')
+
+        return redirect(url_for('recipes_list'))
+
+    # pylint: disable=unused-variable
+    @app.route('/recipes')
+    def recipes_list():
+        """Display all recipes."""
+        all_recipes = Recipes.query.order_by(Recipes.Required_Level, Recipes.Recipe_Name).all()
+        return render_template('recipes.html',
+                               title='FFXIV Recipes',
+                               recipes=all_recipes)
 
     return app
 

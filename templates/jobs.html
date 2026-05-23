@@ -3,30 +3,35 @@
 {% block title %}FFXIV Jobs {% endblock %}
 
 {% block content %}
-    <h2>All Jobs ({{ jobs|length }})</h2>
+    <div class="d-flex justify-content-between  align-items-center mb-4">
+        <h2>All Jobs ({{ jobs|length }})</h2>
+        <a href="{{ url_for('seed_jobs') }}" class="btn btn-outline-primary">Rd-seed Jobs Data</a>
+    </div>
 
-    a href="{{ url_for('seed_jobs') }}" class="btn-primary">Rd-seed Jobs Data</a>
-
-    <table style="margin-top: 20px; width: 100%;">
-        <thead>
-            <tr>
-                <th>Job</th>
-                <th>Short</th>
-                <th>Starting Level</th>
-                <th>Type</th>
-                <th>Limited?</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for job in jobs %}
-            <tr>
-                <td><strong>{{ job.Job_Longname }}</strong></td>
-                <td>{{ job.Job_Shortname }}</td>
-                <td>{{ job.Starting_Level }}</td>
-                <td>{{ job.Job_Type }}</td>
-                <td>{% if job.Limited_Job %}Yes{% else %}No{% endif %}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Job</th>
+                        <th>Short</th>
+                        <th>Starting Level</th>
+                        <th>Type</th>
+                        <th>Limited?</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job in jobs %}
+                    <tr>
+                        <td><strong>{{ job.Job_Longname }}</strong></td>
+                        <td>{{ job.Job_Shortname }}</td>
+                        <td>{{ job.Starting_Level }}</td>
+                        <td>{{ job.Job_Type }}</td>
+                        <td>{% if job.Limited_Job %}Yes{% else %}No{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 {% endblock %}

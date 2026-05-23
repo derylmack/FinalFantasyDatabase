@@ -118,6 +118,9 @@ class Recipes(db.Model):
     Job_ID = db.Column(db.Integer, db.ForeignKey(Jobs.Job_ID), nullable=False)
     Required_Level = db.Column(db.Integer, nullable=True)
 
+    job = db.relationship('Jobs', backref='recipes')
+    ingredients = db.relationship('Ingredients', back_populates='recipe')
+
     # Optional: String representation for easier debugging
     def __repr__(self):
         return f"<Recipes {self.Recipe_Name} >"
@@ -128,6 +131,9 @@ class Ingredients(db.Model):
     Recipe_ID = db.Column(db.Integer, db.ForeignKey(Recipes.Recipe_ID), primary_key=True)
     Item_ID = db.Column(db.Integer, db.ForeignKey(Items.Item_ID), primary_key=True)
     Quantity = db.Column(db.Integer, nullable=False)
+
+    recipe = db.relationship('Recipes', back_populates='ingredients')
+    item = db.relationship('Items', backref='used_in_ingredients')
 
     # Optional: String representation for easier debugging
     def __repr__(self):
