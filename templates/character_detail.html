@@ -3,138 +3,120 @@
 {% block title %}{{ character.Character_Name }} - Details {% endblock %}
 
 {% block content %}
-    <h1 class="mb-4">{{ character.Character_Name }}</h1>
+    <h1 class="mb-2">{{ character.Character_Name }}</h1>
 
     <!-- Character Information -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5>Character Information</h5>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-4">
-                    <strong>Character ID:</strong> {{character.Character_ID }}
-                </div>
-                <div class="col-md-4">
-                    <strong>Server:</strong>
-                    {{ character.server.Server_Name if character.server else 'Not assigned'}}
-                </div>
-                <div class="col-md-4">
-                    <strong>Playable:</strong>
-                    {% if character.Playable %}
-                        <span class="playable">Yes ★</span>
-                    {% else %}
-                        No
-                    {% endif %}
-                </div>
-            </div>
+    <div class="row mb-3 pb-2 border-bottom small">
+        <div class="col-auto text-muted"><strong>ID:</strong> {{ character.Character_ID }}</div>
+        <div class="col-auto text-muted"><strong>Server:</strong> {{ character.server.Server_Name if character.server else 'Not assigned' }}</div>
+        <div class="col-auto">
+            <strong>Playable:</strong>
+            {% if character.Playable %}
+                <span class="text-success">Yes ★</span>
+            {% else %}
+                <span class="text-muted">No</span>
+            {% endif %}
         </div>
     </div>
 
     <!-- Storage Locations -->
-    <h2 class="mb-3">Storage Locations ({{ character.storage_locations|length }})</h2>
+    <h2 class="mb-2">Storage Locations ({{ character.storage_locations|length }})</h2>
 
-    <div class="row row-cols-1 row-cols-lg-2 g-4">
+    <div class="row row-cols-1 row-cols-lg-2 g-3">
         {% for loc in character.storage_locations %}
         <div class="col">
             <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="card-header d-flex justify-content-between align-items-center py-2">
                     <strong>{{ loc.Storage_Location }}</strong>
-                    <span class="badge bg-secondary">({{ loc.item_locations|length }} items)</span>
+                    <span class="badge bg-secondary">{{ loc.item_locations|length }} items</span>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-2">
                     <!-- Current Items List -->
                     {% if loc.item_locations %}
-                        <ul class="list-group list-group-flush mb-3">
+                        <ul class="list-group list-group-flush mb-2">
                             {% for item_loc in loc.item_locations %}
-                                <li class="list-group-item d-flex justify-content-between align-items-center item-row">
-                                    <div>
-                                        <strong>{{ item_loc.item.Item_Name }}</strong>
-                                        <span class="ms-3">
-                                            x {{ item_loc.Quantity }}
-                                            {% if item_loc.Quantity_HQ > 0 %}
-                                                <span class="text-success">HQ x {{ item_loc.Quantity_HQ }}</span>
-                                            {% endif %}
-                                        </span>
+                                <li class="list-group-item py-2 item-row">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>{{ item_loc.item.Item_Name }}</strong>
+                                            <span class="ms-2 text-muted small">
+                                                x{{ item_loc.Quantity }}
+                                                {% if item_loc.Quantity_HQ > 0 %}
+                                                    <span class="text-success">HQ x{{ item_loc.Quantity_HQ }}</span>
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        <!-- Action Buttons -->
+                                        <div class="d-flex gap-1">
+                                            <button onclick="toggleEditForm(this)" class="btn btn-warning btn-sm">Edit</button>
+                                            <button onclick="showMoveForm(this)" class="btn btn-secondary btn-sm">Move</button>
+                                            <form method="POST"
+                                                action="{{ url_for('remove_item_from_storage', storage_id=loc.Storage_ID, item_id=item_loc.Item_ID) }}"
+                                                style="display: inline;"
+                                                onsubmit="return confirm('Remove {{ item_loc.item.Item_Name }} from this storage?')">
+                                                <input type="hidden" name="char_id" value="{{ character.Character_ID }}">
+                                                <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                                            </form>
+                                        </div>
                                     </div>
-                                    <!-- Action Buttons -->
-                                    <div>
-                                        <button onclick="toggleEditForm(this)" class="btn btn-warning btn-sm">Edit Qty</button>
-                                        <button onclick="showMoveForm(this)" class="btn btn-secondary btn-sm">Move</button>
-                                        <!-- Remove Form -->
-                                        <form method="POST"
-                                            action="{{ url_for('remove_item_from_storage', storage_id=loc.Storage_ID, item_id=item_loc.Item_ID) }}"
-                                               style="display: inline;"
-                                               onsubmit="return confirm('Remove {{ item_loc.item.Item_Name }} from this storage?')">
-                                              <input type="hidden" name="char_id" value="{{ character.Character_ID }}">
-                                              <button type="submit" class="btn btn-danger btn-sm">Remove</button>
-                                        </form>
-                                    </div>
+
                                     <!-- Hidden Edit Quantity Form -->
-                                     <div class="edit-qty-form mt-3 p-3 border border-warning rounded bg-light" style="display: none;">
+                                    <div class="edit-qty-form mt-2 p-2 border border-warning rounded bg-light" style="display: none;">
                                         <form method="POST" action="{{ url_for('update_item_quantity', storage_id=loc.Storage_ID, item_id=item_loc.Item_ID) }}">
                                             <input type="hidden" name="char_id" value="{{ character.Character_ID }}">
-
-                                            <div class="row g-3 align-items-end">
+                                            <div class="row g-2 align-items-end">
                                                 <div class="col-md-4">
-                                                    <label class="form-label fw-bold">Normal Qty</label>
+                                                    <label class="form-label form-label-sm fw-bold mb-1">Normal Qty</label>
                                                     <input type="number" name="normal_quantity"
-                                                            value="{{ item_loc.Quantity or 0 }}"
-                                                            min="0" max="9999"
-                                                            class="form-control">
+                                                           value="{{ item_loc.Quantity or 0 }}"
+                                                           min="0" max="9999"
+                                                           class="form-control form-control-sm">
                                                 </div>
                                                 <div class="col-md-4">
-                                                    <label class="form-label fw-bold">HQ Qty</label>
+                                                    <label class="form-label form-label-sm fw-bold mb-1">HQ Qty</label>
                                                     <input type="number" name="hq_quantity"
-                                                            value="{{ item_loc.Quantity_HQ or 0 }}"
-                                                            min="0" max="9999"
-                                                            class="form-control">
+                                                           value="{{ item_loc.Quantity_HQ or 0 }}"
+                                                           min="0" max="9999"
+                                                           class="form-control form-control-sm">
                                                 </div>
                                                 <div class="col-md-4">
-                                                    <button type="submit" class="btn btn-primary btn-sm w-100">Save Changes</button>
+                                                    <button type="submit" class="btn btn-primary btn-sm w-100">Save</button>
                                                     <button type="button" onclick="hideEditForm(this)"
                                                             class="btn btn-secondary btn-sm w-100 mt-1">Cancel</button>
                                                 </div>
                                             </div>
                                         </form>
-                                     </div>
+                                    </div>
 
                                     <!-- Hidden Move Form -->
-                                    <div class="move-form mt-3 p-3 border border-primary rounded bg-light" style="display: none;">
+                                    <div class="move-form mt-2 p-2 border border-primary rounded bg-light" style="display: none;">
                                         <form method="POST" action="{{ url_for('move_item', storage_id=loc.Storage_ID, item_id=item_loc.Item_ID) }}">
                                             <input type="hidden" name="char_id" value="{{ character.Character_ID }}">
-
-                                            <div class="row g-3 align-items-end">
-                                                <!-- Target Character -->
-                                                <div class="col-md-4">
-                                                    <label class="form-label fw-bold">To Character:</label>
-                                                    <select name="target_char_id" class="form-select" required onchange="loadTargetStorages(this)">
-                                                        <option value="">-- Select Character --</option>
-                                                        {% for other_char in all_characters if other_char.Character_ID != character.Character_ID %}
+                                            <div class="row g-2 align-items-end">
+                                                <div class="col-md-3">
+                                                    <label class="form-label form-label-sm fw-bold mb-1">To Character:</label>
+                                                    <select name="target_char_id" class="form-select form-select-sm" required onchange="loadTargetStorages(this)">
+                                                        <option value="">-- Character --</option>
+                                                        {% for other_char in all_characters if other_char.Character_ID %}
                                                             <option value="{{ other_char.Character_ID }}">{{ other_char.Character_Name }}</option>
                                                         {% endfor %}
                                                     </select>
                                                 </div>
-
-                                                <!-- Target Storage -->
                                                 <div class="col-md-3">
-                                                    <label class="form-label fw-bold">To Storage:</label>
-                                                    <select name="target_storage_id" id="target_storage_select" class="form-select" required>
-                                                        <option value="">-- Select storage --</option>
+                                                    <label class="form-label form-label-sm fw-bold mb-1">To Storage:</label>
+                                                    <select name="target_storage_id" class="form-select form-select-sm" required>
+                                                        <option value="">-- Storage --</option>
                                                     </select>
                                                 </div>
-
                                                 <div class="col-md-2">
-                                                    <label class="form-label fw-bold">Normal</label>
-                                                    <input type="number" name="normal_quantity" value="0" min="0" max="9999" class="form-control">
+                                                    <label class="form-label form-label-sm fw-bold mb-1">Normal</label>
+                                                    <input type="number" name="normal_quantity" value="0" min="0" max="9999" class="form-control form-control-sm">
                                                 </div>
-
                                                 <div class="col-md-2">
-                                                    <label class="form-label fw-bold">HQ</label>
-                                                    <input type="number" name="hq_quantity" value="0" min="0" max="9999" class="form-control">
+                                                    <label class="form-label form-label-sm fw-bold mb-1">HQ</label>
+                                                    <input type="number" name="hq_quantity" value="0" min="0" max="9999" class="form-control form-control-sm">
                                                 </div>
-
-                                                <div class="col-md-1">
+                                                <div class="col-md-2">
                                                     <button type="submit" class="btn btn-primary btn-sm w-100">Move</button>
                                                     <button type="button" onclick="hideMoveForm(this)" class="btn btn-secondary btn-sm w-100 mt-1">Cancel</button>
                                                 </div>
@@ -143,107 +125,107 @@
                                     </div>
                                 </li>
                             {% endfor %}
-                            </ul>
-                        {% else %}
-                            <p class="text-muted">No items in this storage yet.</p>
-                        {% endif %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted small mb-2">No items in this storage yet.</p>
+                    {% endif %}
 
-
-                        <!-- Add New Item Form -->
-                        <div class="add-item-section mt-4 pt-3 border-top">
-                            <h6 class="mb-3">Add New Item</h6>
-                            <form method="POST" action="{{ url_for('add_item_to_storage', storage_id=loc.Storage_ID) }}" style="margin-top: 20px;">
-                                <input type="hidden" name="char_id" value="{{ character.Character_ID }}">
+                    <!-- Add New Item Form -->
+                    <div class="add-item-section mt-2 pt-2 border-top">
+                        <h6 class="mb-2 small">Add New Item</h6>
+                        <form method="POST" action="{{ url_for('add_item_to_storage', storage_id=loc.Storage_ID) }}" class="mt-1">
+                            <input type="hidden" name="char_id" value="{{ character.Character_ID }}">
+                            <div class="row g-2 align-items-center">
                                 <div class="col-md-5">
-                                    <input type="text" name="item_name" class="form-control"
-                                                    placeholder="Item name" required>
+                                    <input type="text" name="item_name" class="form-control form-control-sm"
+                                           placeholder="Item name" required>
                                 </div>
                                 <div class="col-md-2">
                                     <input type="number" name="quantity"
                                            value="1" min="1" required
-                                           class="form-control">
+                                           class="form-control form-control-sm">
                                 </div>
-                                <div class="col-md-2">
-                                    <div class="form-check mt-2">
-                                        <input type="checkbox" name="hq" value="1" class="form-check-input">
+                                <div class="col-md-2 d-flex align-items-center">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="hq" value="1" class="form-check-input" id="hq_{{ loc.Storage_ID }}">
+                                        <label class="form-check-label small" for="hq_{{ loc.Storage_ID }}">HQ</label>
                                     </div>
                                 </div>
                                 <div class="col-md-3">
-                                    <button type="submit" class="btn btn-primary w-100">Add Item</button>
+                                    <button type="submit" class="btn btn-primary btn-sm w-100">Add Item</button>
                                 </div>
-                            </form>
-                        </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
-        {% endfor %}
         </div>
+        {% endfor %}
+    </div>
 
     <!-- Add New Storage Location Form -->
-    <div class="card mt-4">
-        <div class="card-header">
-            <h5 class="mb-0">Add New Storage Location</h5>
+    <div class="card mt-3">
+        <div class="card-header py-2">
+            <h6 class="mb-0">Add New Storage Location</h6>
         </div>
-        <div class="card-body">
-            <form method="POST" action="{{ url_for('add_storage_location', char_id=character.Character_ID) }}" class="row g-3">
+        <div class="card-body py-2">
+            <form method="POST" action="{{ url_for('add_storage_location', char_id=character.Character_ID) }}" class="row g-2 align-items-end">
                 <div class="col-md-8">
-                    <label class="form-label">Storage Location Name</label>
                     <input type="text" id="storage_location" name="storage_location"
-                        class="form-control"
+                        class="form-control form-control-sm"
                         placeholder="e.g. Inventory, Retainer 1, Saddlebag, FC Chest" required>
                 </div>
-                <div class="col-md-4 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary">Add Storage Location</button>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary btn-sm w-100">Add Storage Location</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Job Levels -->
-    <h2 class="mt-5 mb-3">Job Levels</h2>
+    <h2 class="mt-4 mb-2">Job Levels</h2>
 
     {% for category in ['Tank', 'Healer', 'Melee', 'Ranged', 'Caster', 'Crafting', 'Gathering'] %}
         {% set category_jobs = character.characters_job_levels | selectattr('job.Job_Type', 'equalto', category) | list %}
         {% if category_jobs %}
-            <div class="card mb-4">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0">{{ category }}</h5>
+            <div class="card mb-3">
+                <div class="card-header bg-light py-2">
+                    <h6 class="mb-0">{{ category }}</h6>
                 </div>
                 <div class="card-body p-0">
-                    <table class="table table-hover mb-0">
+                    <table class="table table-sm table-hover mb-0">
                         <thead class="table-light">
                             <tr>
                                 <th>Job</th>
-                                <th class="text-center">Current Level</th>
-                                <th class="text-center">Update Level</th>
+                                <th class="text-center" style="width: 80px;">Level</th>
+                                <th>Update</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for job_level in category_jobs %}
                             <tr>
-                                <td>
+                                <td class="py-1">
                                     <strong>{{ job_level.job.Job_Longname }}</strong>
                                     <small class="text-muted">({{ job_level.job.Job_Shortname }})</small>
                                 </td>
-                                <td class="text-center fw-bold">
+                                <td class="text-center fw-bold py-1">
                                     {{ job_level.Job_Level if job_level.Job_Level > 0 else '-' }}
                                 </td>
-                                <td>
+                                <td class="py-1">
                                     <form method="POST" action="{{ url_for('update_job_level',
                                                                             char_id=character.Character_ID,
                                                                             job_id=job_level.Job_ID) }}"
-                                                        class="d-flex align-items-center gap-2">
+                                                        class="d-flex align-items-center gap-1">
                                         <input type="number" name="job_level"
-                                                value="{{ job_level.Job_Level or ''}}"
-                                                min="0" max="100" class="form-control form-control-sm" style="width: 100px">
-
-                                        <button type="submit" class=" btn btn-primary btn-sm">Save</button>
-
-                                        <!-- Quick Buttons -->
-                                        <button type="button" onclick="setQuickLevel(this,0)" class="btn btn-outline-secondary btn-sm">0</button>
-                                        <button type="button" onclick="setQuickLevel(this,50)" class="btn btn-outline-secondary btn-sm">50</button>
-                                        <button type="button" onclick="setQuickLevel(this,80)" class="btn btn-outline-secondary btn-sm">80</button>
-                                        <button type="button" onclick="setQuickLevel(this,100)" class="btn btn-outline-secondary btn-sm">100</button>
+                                               value="{{ job_level.Job_Level or '' }}"
+                                               min="0" max="100" class="form-control form-control-sm" style="width: 75px;">
+                                        <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                                        <div class="btn-group btn-group-sm ms-1">
+                                            <button type="button" onclick="setQuickLevel(this,0)" class="btn btn-outline-secondary">0</button>
+                                            <button type="button" onclick="setQuickLevel(this,50)" class="btn btn-outline-secondary">50</button>
+                                            <button type="button" onclick="setQuickLevel(this,80)" class="btn btn-outline-secondary">80</button>
+                                            <button type="button" onclick="setQuickLevel(this,100)" class="btn btn-outline-secondary">100</button>
+                                        </div>
                                     </form>
                                 </td>
                             </tr>
@@ -252,59 +234,74 @@
                     </table>
                 </div>
             </div>
-    {% endif %}
-{% endfor %}
-
-<!-- Relevant Recpies for this Character -->
-<h2 class="mt-5 mb-4>Craftable Recipies"</h2>
-
-<div class="card">
-    <div class="card-body">
-        {% if character.characters_job_levels %}
-            <div class="row row-cols-1 row-cols-md-2 g-4">
-                {% for job_level in character.characters_job_levels %}
-                    {% if job_level.Job_Level and job_level.Job_Level > 0 %}
-                        {% set job_recipes = job_level.job.recipes | selectattr('Required_Level', 'le', job_level.Job_Level) | list %}
-                        {% if job_recipes %}
-                            <div class="col">
-                                <h6>{{ job_level.job.Job_Longname }} (Level {{ job_level.Job_Level }}</h6>
-                                <ul class="list-group list-group-flush">
-                                    {% for recipe in job_recipes %}
-                                    <li class="list-group-item">
-                                        <span class="badge bg-success ms-2">Level {{ recipe.Required_Level }}</span>
-                                    </li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
-            </div>
-        {% else %}
-            <p class="text-muted">No job levels set yet.</p>
         {% endif %}
-    </div>
-</div>
+    {% endfor %}
 
-    <br>
-    <a href="{{ url_for('characters') }}" class="btn btn-secondary">← Back to All Characters</a>
+    <!-- Craftable Recipes for this Character -->
+    <h2 class="mt-4 mb-2">Craftable Recipes</h2>
+
+    <div class="row row-cols-1 row-cols-md-2 g-3">
+        {% for job_level in character.characters_job_levels %}
+            {% if job_level.Job_Level and job_level.Job_Level > 0 %}
+                {% set craftable_recipes = job_level.job.recipes |
+                    selectattr('Required_Level', 'le', job_level.Job_Level) | list %}
+
+                {% if craftable_recipes %}
+                <div class="col">
+                    <div class="card">
+                        <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                            <strong class="small">{{ job_level.job.Job_Longname }}</strong>
+                            <span class="badge bg-primary">Lv {{ job_level.Job_Level }}</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Recipe</th>
+                                        <th>Ingredients</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for recipe in craftable_recipes %}
+                                    <tr>
+                                        <td class="py-1 align-top small fw-bold">{{ recipe.Recipe_Name }}</td>
+                                        <td class="py-1">
+                                            {% for ing in recipe.ingredients %}
+                                                {% set owned = character.storage_locations | map(attribute='item_locations') | sum(start=[]) | selectattr('Item_ID', 'equalto', ing.item.Item_ID) | map(attribute='Quantity') | sum() %}
+                                                <span class="d-block small">
+                                                    {{ ing.item.Item_Name }}
+                                                    <span class="badge {% if owned >= ing.Quantity %}bg-success{% else %}bg-warning text-dark{% endif %} ms-1">
+                                                        {{ owned }}/{{ ing.Quantity }}
+                                                    </span>
+                                                </span>
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <div class="mt-3">
+        <a href="{{ url_for('characters') }}" class="btn btn-secondary btn-sm">← Back to All Characters</a>
+    </div>
 
 {% endblock %}
 
 {% block scripts %}
 <script>
 function toggleEditForm(btn) {
-    // Find the closest item row
     const row = btn.closest('.item-row');
     if (!row) return;
-
-    // Find the edit form inside this row
     const editForm = row.querySelector('.edit-qty-form');
     if (!editForm) return;
-
     const isHidden = editForm.style.display === 'none' || editForm.style.display === '';
-
-    // Toggle visibility
     if (isHidden) {
         editForm.style.display = 'block';
         btn.textContent = 'Cancel';
@@ -312,27 +309,21 @@ function toggleEditForm(btn) {
         btn.classList.add('btn-secondary');
     } else {
         editForm.style.display = 'none';
-        btn.textContent = 'Edit Qty';
+        btn.textContent = 'Edit';
         btn.classList.remove('btn-secondary');
         btn.classList.add('btn-warning');
     }
 }
-</script>
 
-<script>
-function setQuickLevel(btn, level) {
-    const form = btn.closest('form');
+function hideEditForm(btn) {
+    const form = btn.closest('.edit-qty-form');
     if (form) {
-        const input = form.querySelector('input[name="job_level"]');
-        if (input) {
-            input.value = level;
-            form.submit();   // Auto-save
-        }
+        form.style.display = 'none';
+        const editBtn = btn.closest('.item-row').querySelector('.btn-warning, .btn-secondary[onclick]');
+        if (editBtn) editBtn.textContent = 'Edit';
     }
 }
-</script>
 
-<script>
 function showMoveForm(btn) {
     const row = btn.closest('.item-row');
     const moveForm = row.querySelector('.move-form');
@@ -340,41 +331,29 @@ function showMoveForm(btn) {
         moveForm.style.display = moveForm.style.display === 'none' ? 'block' : 'none';
     }
 }
-</script>
 
-<script>
 function hideMoveForm(btn) {
     const form = btn.closest('.move-form');
     if (form) form.style.display = 'none';
 }
-</script>
 
-<script>
-function hideEditForm(btn) {
-    const form = btn.closest('.edit-qty-form');
+function setQuickLevel(btn, level) {
+    const form = btn.closest('form');
     if (form) {
-        form.style.display = 'none';
-
-        // Reset button text if needed
-        const editBtn = btn.closest('.item-row').querySelector('.btn-warning');
-        if (editBtn) {
-            editBtn.textContent = 'Edit Qty';
+        const input = form.querySelector('input[name="job_level"]');
+        if (input) {
+            input.value = level;
+            form.submit();
         }
     }
 }
-</script>
 
-<script>
 function loadTargetStorages(selectElement) {
     const moveForm = selectElement.closest('.move-form');
     const targetStorageSelect = moveForm.querySelector('[name="target_storage_id"]');
-    targetStorageSelect.innerHTML = '<option value="">-- Select storage --</option>';
-
+    targetStorageSelect.innerHTML = '<option value="">-- Storage --</option>';
     if (!selectElement.value) return;
-
-    // Get storages for the selected character (data passed from backend)
     const charStorages = window.allCharacterStorages ? window.allCharacterStorages[selectElement.value] : [];
-
     charStorages.forEach(storage => {
         const option = document.createElement('option');
         option.value = storage.id;

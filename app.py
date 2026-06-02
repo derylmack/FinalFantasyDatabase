@@ -370,7 +370,7 @@ def create_app(config_class=Config):
         """Delete an item from the master list."""
         try:
             item=Items.query.get_or_404(item_id)
-            item_name = item.Item.Name
+            item_name = item.Item_Name
 
             db.session.delete(item)
             db.session.commit()
@@ -792,9 +792,103 @@ def create_app(config_class=Config):
     def recipes_list():
         """Display all recipes."""
         all_recipes = Recipes.query.order_by(Recipes.Required_Level, Recipes.Recipe_Name).all()
+        all_jobs = Jobs.query.order_by(Jobs.Job_Type, Jobs.Job_Longname).all()
+
         return render_template('recipes.html',
                                title='FFXIV Recipes',
-                               recipes=all_recipes)
+                               recipes=all_recipes,
+                               all_jobs=all_jobs)
+
+    @app.route('/add_recipe', methods=['POST'])
+    def add_recipe():
+        """Add a new recipe manually"""
+        try:
+            recipe_name = request.form.get('recipe_name', '').strip()
+            job_id = int(request.form.get('job_id'))
+            required_level = int(request.form.get('required_level',1))
+
+            if not recipe_name:
+                flash('Recipe name is required.', 'error')
+                return redirect(url_for('recipes_list'))
+
+            #check if recipe already exists
+            existing = Recipes.query.filter_by(Recipe_Name=recipe_name).first()
+            if existing:
+                flash(f'Recipe "{recipe_name}" already exists.', 'error')
+                return redirect(url_for('recipes_list'))
+
+            new_recipe = Recipes(
+                Recipe_Name=recipe_name,
+                Job_ID=job_id,
+                Required_Level=required_level
+            )
+
+            db.session.add(new_recipe)
+            db.session.commit()
+
+            flash(f'Recipe "{recipe_name}" added successfully.', 'success')
+
+        except ValueError:
+            flash('Invalid job or level entered.', 'error')
+        # pylint: disable=broad-exception-caught
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error adding recipe: {str(e)}', 'error')
+
+        return redirect(url_for('recipes_list'))
+
+    @app.route('/recipe/<int:recipe_id>/ingredients', methods=['GET', 'POST'])
+    def manage_recipe_ingredients(recipe_id):
+        """Manage ingredients for a specific recipe"""
+        recipe = Recipes.query.get_or_404(recipe_id)
+
+        if request.method == 'POST':
+            try:
+                item_name = request.form.get('item_name', '').strip()
+                quantity = int(request.form.get('quantity', 1))
+
+                if not item_name:
+                    flash('Item name is required.', 'error')
+                    return redirect(url_for('manage_recipe_ingredients', recipe_id=recipe_id))
+
+                #Find or create item
+                item = Items.query.filter(Items.Item_Name.ilike(item_name)).first()
+                if not item:
+                    item = Items(Item_Name=item_name)
+                    db.session.add(item)
+                    db.session.flush()
+
+                #Check if ingredient already exists
+                existing = Ingredients.query.filter_by(
+                    Recipe_ID=recipe.Recipe_ID,
+                    Item_ID=item.Item_ID
+                ).first()
+
+                if existing:
+                    existing.Quantity = quantity
+                    flash(f'Updated {item_name} quantity.', 'success')
+                else:
+                    new_ing = Ingredients(
+                        Recipe_ID=recipe.Recipe_ID,
+                        Item_ID=item.Item_ID,
+                        Quantity=quantity
+                    )
+                    db.session.add(new_ing)
+                    flash(f'Added {item_name} to recipe.', 'success')
+
+                db.session.commit()
+
+            # pylint: disable=broad-exception-caught
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error: {str(e)}', 'error')
+
+            return redirect(url_for('manage_recipe_ingredients', recipe_id=recipe_id))
+
+        #Get request - show current ingredients + form
+        return render_template('manage_ingredients.html',
+                               recipe=recipe,
+                               ingredients=recipe.ingredients)
 
     return app
 

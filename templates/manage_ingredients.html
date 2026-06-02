@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Ingredients - {{ recipe.Recipe_Name }}{% endblock %}
+
+{% block content %}
+    <h2>Ingredients for: {{ recipe.Recipe_Name }}</h2>
+    <p><strong>Job:</strong> {{ recipe.job.Job_Longname }} (Level {{ recipe.Required_Level or '-' }})</p>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5>Current Ingredients</h5>
+            {% if ingredients %}
+                <ul class="list-group">
+                    {% for ing in ingredients %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>{{ ing.item.Item_Name }}</span>
+                        <span class="badge bg-primary">{{ ing.Quantity }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted">No ingredients added yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Add Ingredient Form -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Add / Update Ingredient</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Item Name</label>
+                    <input type="text" name="item_name" class="form-control" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Quantity</label>
+                    <input type="number" name="quantity" value="1" min="1" class="form-control">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Add/Update Ingredient</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <a href="{{ url_for('recipes_list') }}" class="btn btn-secondary mt-3">← Back to Recipes</a>
+{% endblock %}

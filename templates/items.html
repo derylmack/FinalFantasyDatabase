@@ -1,43 +1,39 @@
 {% extends "base.html" %}
 
-{% block title %}All {% endblock %}
+{% block title %}All Items{% endblock %}
 
 {% block content %}
-    <h2 class="mb-4">All Items ({{ items|length }})</h2>
+    <h2 class="mb-3">All Items ({{ items|length }})</h2>
 
     <!-- Search Form -->
-     <div class="card mb-4">
-        <div class="card-body">
-            <form method="GET" action="{{ url_for('items_list') }}" class="row g-3">
-                <div class="col-md-8">
-                    <input type="text" name="search"
-                    value="{{ search_query }}"
-                    placeholder="Search items..."
-                    class="form-control">
-                </div>
-                <div class="col-md-4">
-                    <button type="submit" class="btn btn-primary w-100">Search</button>
-                </div>
-                {% if search_query %}
-                    <div class="col-12">
-                        <a href="{{ url_for('items_list') }}" class="btn btn-secondary">Clear</a>
-                    </div>
-                {% endif %}
-            </form>
+    <form method="GET" action="{{ url_for('items_list') }}" class="row g-2 mb-3 align-items-center">
+        <div class="col-md-8">
+            <input type="text" name="search"
+                value="{{ search_query }}"
+                placeholder="Search items..."
+                class="form-control form-control-sm">
         </div>
-    </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary btn-sm">Search</button>
+        </div>
+        {% if search_query %}
+        <div class="col-auto">
+            <a href="{{ url_for('items_list') }}" class="btn btn-secondary btn-sm">Clear</a>
+        </div>
+        {% endif %}
+    </form>
 
     <!-- Items Table -->
-    <div class="card">
-        <div class="card-body">
-            <table class="table table-hover align-middle">
-                <thead>
+    <div class="card mb-3">
+        <div class="card-body p-0">
+            <table class="table table-sm table-hover align-middle mb-0">
+                <thead class="table-light">
                     <tr>
                         <th>Item Name</th>
                         <th>Type</th>
                         <th>Obtained From</th>
-                        <th>Used In</th>
-                        <th>Actions</th>
+                        <th>Stored In</th>
+                        <th class="text-end">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -49,56 +45,59 @@
                         <td>
                             {% if item.item_locations %}
                                 <small class="text-muted">
-                                    {{ item.item_locations|length }} location{{ 's' if item.item_location|length > 1 else ''}}
+                                    {{ item.item_locations|length }} location{{ 's' if item.item_locations|length > 1 else '' }}
                                 </small>
                             {% else %}
                                 <em class="text-muted">Not stored</em>
                             {% endif %}
                         </td>
                         <td class="text-end">
-                            <a href="{{ url_for('edit_item', item_id=item.Item_ID ) }}"
-                                class="btn btn-warning btn-sm">Edit</a>
-                            <form method="POST"
+                            <div class="d-flex gap-1 justify-content-end">
+                                <a href="{{ url_for('edit_item', item_id=item.Item_ID) }}"
+                                    class="btn btn-warning btn-sm">Edit</a>
+                                <form method="POST"
                                     action="{{ url_for('delete_item', item_id=item.Item_ID) }}"
                                     style="display:inline;"
-                                    onsubmit="return confirm('Delete {{ item.Item_ID}}?')">
-                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                            </form>
+                                    onsubmit="return confirm('Delete {{ item.Item_Name }}?')">
+                                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                </form>
+                            </div>
                         </td>
-                        {% else %}
-                        <tr>
-                            <td colspan="5" class="text-center py-4">No Items Found</td>
-                        </tr>
-                        {% endfor %}
-                   </tbody>
-                </table>
-            </div>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">No items found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
+    </div>
 
-        <!-- Add New Item Form (later) -->
-        <div class="card mt-4">
-            <div class="card-header">
-                <h5>Add New Item</h5>
-            </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('add_item') }}" class="row g-3">
-                    <div class="col-md-5">
-                        <label class="form-label">Item Name</label>
-                        <input type="text" name="item_name" class="form-control" required placeholder="e.g. Carbon Fiber">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Item Type (optional)</label>
-                        <input type="text" name="item_type" placeholder="e.g. REagent, Weapon, etc." class="form-control">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Obtained From (optional)</label>
-                        <input type="text" name="obtained_from" class="form-control" placeholder="e.g. Crafting, Vendor, etc.">
-                    </div>
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-primary">Add Item</button>
-                    </div>
-                </form>
-            </div>
+    <!-- Add New Item Form -->
+    <div class="card">
+        <div class="card-header py-2">
+            <h6 class="mb-0">Add New Item</h6>
         </div>
+        <div class="card-body py-2">
+            <form method="POST" action="{{ url_for('add_item') }}" class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label form-label-sm mb-1">Item Name</label>
+                    <input type="text" name="item_name" class="form-control form-control-sm" required placeholder="e.g. Carbon Fiber">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label form-label-sm mb-1">Type <span class="text-muted fw-normal">(optional)</span></label>
+                    <input type="text" name="item_type" placeholder="e.g. Reagent, Weapon" class="form-control form-control-sm">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label form-label-sm mb-1">Obtained From <span class="text-muted fw-normal">(optional)</span></label>
+                    <input type="text" name="obtained_from" class="form-control form-control-sm" placeholder="e.g. Crafting, Vendor">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary btn-sm w-100">Add Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 {% endblock %}
-

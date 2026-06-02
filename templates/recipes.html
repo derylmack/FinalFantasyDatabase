@@ -7,28 +7,69 @@
         <h2>All Recipes ({{ recipes|length }})</h2>
         <a href="{{ url_for('seed_recipes') }}" class="btn btn-outline-primary">Re-seed Recipes</a>
     </div>
-
-    <div class="card">
-        <div class="card-body">
-            <table class="table table-hover align-middle">
-                <thead>
-                    <tr>
-                        <th>Recipe Name</th>
-                        <th>Job</th>
-                        <th>Required Level</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for recipe in recipes %}
-                    <tr>
-                        <td><strong>{{ recipe.Recipe_Name }}</strong></td>
-                        <td>{{ recipe.job.Job_Longname }}
-                            <small>({{ recipe.job.Job_Shortname }})</small></td>
-                        <td class="text-center">{{ recipe.Required_Level or '-' }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Add New Recipe</h5>
         </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('add_recipe') }}" class="row g-3">
+                <div class="col-md-5">
+                    <label class="form-label">Recipe Name</label>
+                    <input type="text" name="recipe_name" class="form-control" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Job</label>
+                    <select name="job_id" class="form-select" required>
+                        <option value="">-- Select Job --</option>
+                        {% for job in all_jobs %}
+                            <option value="{{ job.Job_ID }}">{{ job.Job_Longname }} ({{ job.Job_Shortname }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Required Level</label>
+                    <input type="number" name="required_level" value="1" min="1" max="100" class="form-control">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Add Recipe</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for recipe in recipes %}
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">{{ recipe.Recipe_Name }}</h5>
+                </div>
+                <div class="card-body">
+                    <p>
+                        <strong>Job:</strong> {{ recipe.job.Job_Longname }} ({{ recipe.job.Job_Shortname }})<br>
+                        <strong>Required Level:</strong> {{ recipe.Required_Level or '-' }}
+                    </p>
+
+                    <h6 class="mt-3">Ingredients:</h6>
+                    {% if recipe.ingredients %}
+                        <ul class="list-group list-group-flush mb-3">
+                            {% for ing in recipe.ingredients %}
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>{{ ing.item.Item_Name }}</span>
+                                <span class="badge bg-secondary">{{ ing.Quantity }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">No ingredients defined.</p>
+                    {% endif %}
+                    <a href="{{ url_for('manage_recipe_ingredients', recipe_id=recipe.Recipe_ID) }}"
+                        class="btn btn-outline-primary btn-sm">
+                        Manage Ingredients
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
     </div>
 {% endblock %}
