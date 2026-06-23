@@ -23,6 +23,27 @@ def create_app(config_class=Config):
     # Initialize the database with the app
     db.init_app(app)
 
+    def get_recipe_tree(recipe, depth=0, max_depth=3):
+        """Recursively build crafting tree with item IDs"""
+        if depth > max_depth:
+            return []
+
+        tree = []
+        for ing in recipe.ingredients:
+            tree.append({
+                'item_name': ing.item.Item_Name,
+                'item_id': ing.item.Item_ID,
+                'quantity': ing.Quantity,
+                'depth': depth,
+                'is_craftable': False  # We'll enhance this later
+            })
+
+            sub_recipe = Recipes.query.filter_by(Recipe_Name=ing.item.Item_Name).first()
+            if sub_recipe:
+                tree[-1]['sub_recipe'] = get_recipe_tree(sub_recipe, depth + 1, max_depth)
+
+        return tree
+
     @app.route('/')
     @app.route('/characters')
 
@@ -97,12 +118,15 @@ def create_app(config_class=Config):
                 for loc in char.storage_locations
             ]
 
+        all_items = Items.query.order_by(Items.Item_Name).all()
+
         return render_template('character_detail.html',
                                title=f"{character.Character_Name}'s Details",
                                character=character,
                                storages=storages,
                                all_characters=all_characters,
-                               character_storages=character_storages)
+                               character_storages=character_storages,
+                               all_items=all_items)
 
     @app.route('/add_storage_location/<int:char_id>', methods=['POST'])
     def add_storage_location(char_id):
@@ -889,6 +913,112 @@ def create_app(config_class=Config):
         return render_template('manage_ingredients.html',
                                recipe=recipe,
                                ingredients=recipe.ingredients)
+
+    @app.route('/recipe/<int:recipe_id>')
+    def recipe_detail(recipe_id):
+        """Show detailed recipe with full ingredient tree"""
+        recipe = Recipes.query.options(
+            joinedload(Recipes.job),
+            joinedload(Recipes.ingredients)
+                .joinedload(Ingredients.item)
+        ).get_or_404(recipe_id)
+
+        char_id = request.args.get('char_id', type=int)
+        selected_character = None
+        if char_id:
+            selected_character = Character.query.get_or_404(char_id)
+
+        all_characters = Character.query.options(
+            joinedload(Character.storage_locations)
+                .joinedload(StorageLocations.item_locations)
+        ).order_by(Character.Character_Name).all()
+
+        ingredient_ids = {ing.item.Item_ID for ing in recipe.ingredients}
+        ingredient_inventory = {}
+        for char in all_characters:
+            for storage in char.storage_locations:
+                for item_loc in storage.item_locations:
+                    if item_loc.Item_ID in ingredient_ids:
+                        qty = (item_loc.Quantity or 0) + (item_loc.Quantity_HQ or 0)
+                        if qty > 0:
+                            if item_loc.Item_ID not in ingredient_inventory:
+                                ingredient_inventory[item_loc.Item_ID] = {'total': 0, 'locations': []}
+                            ingredient_inventory[item_loc.Item_ID]['total'] += qty
+                            ingredient_inventory[item_loc.Item_ID]['locations'].append(
+                                f"{char.Character_Name} → {storage.Storage_Location} ({qty})"
+                            )
+
+        tree = get_recipe_tree(recipe)
+
+        return render_template('recipe_detail.html',
+                               recipe=recipe,
+                               tree=tree,
+                               all_characters=all_characters,
+                               selected_character=selected_character,
+                               ingredient_inventory=ingredient_inventory)
+
+    @app.route('/add_item_to_storage_global', methods=['POST'])
+    def add_item_to_storage_global():
+        """Global add item (used from top form)."""
+        try:
+            char_id = int(request.form.get('char_id'))
+            storage_id = int(request.form.get('storage_id'))
+            item_name = request.form.get('item_name', '').strip()
+            quantity = int(request.form.get('quantity', '1'))
+            is_hq = 'hq' in request.form
+            item_type = request.form.get('item_type', '').strip() or None
+            obtained_from = request.form.get('obtained_from', '').strip() or None
+
+            if not item_name or not storage_id:
+                flash('Item name and storage are required.', 'error')
+                return redirect(url_for('character_detail', char_id=char_id))
+
+            #Find or create item (and update metadata if new)
+            item = Items.query.filter(Items.Item_Name.ilike(item_name)).first()
+            if not item:
+                item = Items(
+                    Item_Name=item_name,
+                    Item_Type=item_type,
+                    Item_Obtained_From=obtained_from
+                )
+                db.session.add(item)
+                db.session.flush()
+            elif item_type or obtained_from:
+                #Updata metadata if provided
+                if item_type:
+                    item.Item_Type = item_type
+                if obtained_from:
+                    item.Item_Obtained_From = obtained_from
+
+            # Add to storage (same logic as before)
+            existing = ItemLocations.query.filter_by(
+                Item_ID=item.Item_ID, Storage_ID=storage_id
+            ).first()
+
+            if existing:
+                if is_hq:
+                    existing.Quantity_HQ = (existing.Quantity_HQ or 0) + quantity
+                else:
+                    existing.Quantity = (existing.Quantity or 0) + quantity
+            else:
+                new_loc = ItemLocations(
+                    Item_ID=item.Item_ID,
+                    Storage_ID=storage_id,
+                    Quantity=0 if is_hq else quantity,
+                    Quantity_HQ=quantity if is_hq else 0
+                )
+                db.session.add(new_loc)
+
+            db.session.commit()
+            flash(f'Added {quantity} {item_name} successfully.', 'success')
+
+        # pylint: disable=broad-exception-caught
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error adding item: {str(e)}', 'error')
+
+        return redirect(url_for('character_detail', char_id=char_id) + '#storage-' + str(storage_id))
+
 
     return app
 

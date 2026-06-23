@@ -19,13 +19,66 @@
         </div>
     </div>
 
+    <!-- Global Add Item Form -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Add Item to Storage</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('add_item_to_storage_global') }}" class="row g-3">
+                <input type="hidden" name="char_id" value="{{ character.Character_ID }}">
+
+                <div class="col-md-4">
+                    <label class="form-label">Storage Location</label>
+                    <select name="storage_id" class="form-select" required>
+                        {% for loc in character.storage_locations %}
+                            <option value="{{ loc.Storage_ID }}">{{ loc.Storage_Location }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-4" style="position: relative;">
+                    <label class="form-label">Item Name</label>
+                    <input type="text" name="item_name" id="item_name_input"
+                            class="form-control" placeholder="Start typing item name..." required autocomplete="off">
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">Qty</label>
+                    <input type="number" name="quantity" value="1" min="1" class="form-control">
+                </div>
+
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="form-check">
+                        <input type="checkbox" name="hq" value="1" class="form-check-input">
+                        <label class="form-check-label">HQ</label>
+                    </div>
+                </div>
+
+                <!-- Extra fields for new items -->
+                <div class="col-md-6">
+                    <label class="form-label">Item Type (optional)</label>
+                    <input type="text" name="item_type" class="form-control" placeholder="e.g. Reagent, Metal, etx.">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Obtained From (optional)</label>
+                    <input type="text" name="obtained_from " class="form-control" placeholder="e.g. Mining, Vendor, Dungeon">
+                </div>
+
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Add Item to Storage</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Storage Locations -->
     <h2 class="mb-2">Storage Locations ({{ character.storage_locations|length }})</h2>
 
     <div class="row row-cols-1 row-cols-lg-2 g-3">
         {% for loc in character.storage_locations %}
         <div class="col">
-            <div class="card h-100">
+            <div class="card h-100" id="storage-{{loc.Storage_ID}}">
                 <div class="card-header d-flex justify-content-between align-items-center py-2">
                     <strong>{{ loc.Storage_Location }}</strong>
                     <span class="badge bg-secondary">{{ loc.item_locations|length }} items</span>
@@ -266,14 +319,24 @@
                                     <tr>
                                         <td class="py-1 align-top small fw-bold">{{ recipe.Recipe_Name }}</td>
                                         <td class="py-1">
+                                            {% set can_craft = true %}
                                             {% for ing in recipe.ingredients %}
-                                                {% set owned = character.storage_locations | map(attribute='item_locations') | sum(start=[]) | selectattr('Item_ID', 'equalto', ing.item.Item_ID) | map(attribute='Quantity') | sum() %}
-                                                <span class="d-block small">
-                                                    {{ ing.item.Item_Name }}
-                                                    <span class="badge {% if owned >= ing.Quantity %}bg-success{% else %}bg-warning text-dark{% endif %} ms-1">
-                                                        {{ owned }}/{{ ing.Quantity }}
+                                                {% set total_owned = 0 %}
+                                                {% for storage in character.storage_locations %}
+                                                    {% for item_loc in storage.item_locations %}
+                                                        {% if item_loc.Item_ID == ing.item.Item_ID %}
+                                                            {% set total_owned = total_owned + (item_loc.Quantity or 0) + (item_loc.Quantity_HQ or 0) %}
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                {% endfor %}
+                                                <li>
+                                                    <span class="d-block small">
+                                                        {{ ing.item.Item_Name }}
+                                                        <span class="badge {% if total_owned >= ing.Quantity %}bg-success{% else %}bg-warning text-dark{% endif %} ms-1">
+                                                            {{ total_owned }}/{{ ing.Quantity }}
+                                                        </span>
                                                     </span>
-                                                </span>
+                                                </li>
                                             {% endfor %}
                                         </td>
                                     </tr>
@@ -362,6 +425,80 @@ function loadTargetStorages(selectElement) {
     });
 }
 </script>
+
+<script>
+// Simple but effective autocomplete
+const itemInput = document.getElementById('item_name_input');
+const allItems = [
+    {% for item in all_items %}
+        "{{ item.Item_Name | replace('"', '\\"') }}"{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
+
+let currentFocus = -1;
+
+itemInput.addEventListener('input', function() {
+    const val = this.value.toLowerCase();
+    closeAllLists();
+
+    if (!val) return false;
+
+    currentFocus = -1;
+    const suggestionsContainer = document.createElement('div');
+    suggestionsContainer.setAttribute('id', this.id + 'autocomplete-list');
+    suggestionsContainer.setAttribute('class', 'autocomplete-items');
+    this.parentNode.appendChild(suggestionsContainer);
+
+    allItems.forEach(item => {
+        if (item.toLowerCase().includes(val)) {
+            const itemDiv = document.createElement('div');
+            itemDiv.innerHTML = "<strong>" + item.substr(0, val.length) + "</strong>" + item.substr(val.length);
+            itemDiv.innerHTML += "<input type='hidden' value='" + item + "'>";
+
+            itemDiv.addEventListener('click', function() {
+                itemInput.value = this.getElementsByTagName('input')[0].value;
+                closeAllLists();
+            });
+
+            suggestionsContainer.appendChild(itemDiv);
+        }
+    });
+});
+
+function closeAllLists() {
+    const items = document.getElementsByClassName('autocomplete-items');
+    for (let i = 0; i < items.length; i++ ) {
+        items[i].parentNode.removeChild(items[i]);
+    }
+}
+
+// Close suggestions when clicking elsewhere
+document.addEventListener('click', function(e){
+    closeAllLists();
+});
+</script>
+
+<style>
+.autocomplete-items {
+    position: absolute;
+    border: 1px solid #ddd;
+    border-top: none;
+    z-index: 99;
+    max-height: 200px;
+    overflow-y: auto;
+    background: white;
+    width: 100%;
+}
+
+.autocomplete-items div {
+    padding:10px;
+    cursor: pointer;
+}
+
+.autocomplete-items div:hover {
+    background: #f0f0f0;
+}
+</style>
 
 <script type="application/json" id="character-storages-data">
     {{ character_storages | tojson | safe }}

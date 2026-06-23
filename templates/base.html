@@ -10,17 +10,41 @@
 
     <style>
         body {
-            background: #f4f4f4;
+            background: #f8f9fa;
         }
-
+        .navbar {
+            background-color: #343a40;
+            padding: 1rem 1.5rem;
+        }
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .navbar a:hover,
+        .navbar a.active {
+            background-color: #495057;
+            color: #ffd700;
+        }
+        .container {
+            max-width: 1400px;
+        }
         /* Optional custom overrides */
         .card {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             margin-bottom: 25px;
         }
-
         .btn-small {
             padding: 4px 10px;
             font-size: 0.85em;
+        }
+        .form-label {
+            font-weight: 600;
+        }
+        .list-group-item {
+            border-left: 3px solid #0d6efd;
         }
     </style>
 </head>
@@ -29,28 +53,16 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand fw-bold" href="{{ url_for('characters') }}">FFXIV Tracker</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'characters' %}active{% endif %}"
-                           href="{{ url_for('characters') }}">Characters</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'jobs_list' %}active{% endif %}"
-                           href="{{ url_for('jobs_list') }}">Jobs</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'items_list' %}active{% endif %}"
-                           href="{{ url_for('items_list') }}">Items</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'recipes_list' %}active{% endif %}"
-                            href="{{ url_for('recipes_list') }}">Recipes</a>
-                    </li>
-                </ul>
+
+            <div class="navbar-nav">
+                <a class="nav-link {% if request.endpoint == 'characters' %}active{% endif %}"
+                        href="{{ url_for('characters') }}">Characters</a>
+                <a class="nav-link {% if request.endpoint == 'jobs_list' %}active{% endif %}"
+                        href="{{ url_for('jobs_list') }}">Jobs</a>
+                <a class="nav-link {% if request.endpoint == 'items_list' %}active{% endif %}"
+                        href="{{ url_for('items_list') }}">Items</a>
+                <a class="nav-link {% if request.endpoint == 'recipes_list' %}active{% endif %}"
+                        href="{{ url_for('recipes_list') }}">Recipes</a>
             </div>
         </div>
     </nav>

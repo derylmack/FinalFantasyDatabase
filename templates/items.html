@@ -23,6 +23,32 @@
         {% endif %}
     </form>
 
+    <!-- Add New Item Form -->
+    <div class="card">
+        <div class="card-header py-2">
+            <h6 class="mb-0">Add New Item</h6>
+        </div>
+        <div class="card-body py-2">
+            <form method="POST" action="{{ url_for('add_item') }}" class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label form-label-sm mb-1">Item Name</label>
+                    <input type="text" name="item_name" class="form-control form-control-sm" required placeholder="e.g. Carbon Fiber">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label form-label-sm mb-1">Type <span class="text-muted fw-normal">(optional)</span></label>
+                    <input type="text" name="item_type" placeholder="e.g. Reagent, Weapon" class="form-control form-control-sm">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label form-label-sm mb-1">Obtained From <span class="text-muted fw-normal">(optional)</span></label>
+                    <input type="text" name="obtained_from" class="form-control form-control-sm" placeholder="e.g. Crafting, Vendor">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary btn-sm w-100">Add Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Items Table -->
     <div class="card mb-3">
         <div class="card-body p-0">
