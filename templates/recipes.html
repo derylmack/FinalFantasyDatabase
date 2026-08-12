@@ -8,6 +8,26 @@
         <a href="{{ url_for('seed_recipes') }}" class="btn btn-outline-primary">Re-seed Recipes</a>
     </div>
     <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('recipes_list') }}" class="row g-3">
+                <div class="col-md-8">
+                    <input type="text" name="search"
+                            value="{{ search_query }}"
+                            class="form-control"
+                            placeholder="Search recipes by name...">
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary w-100">Search</button>
+                </div>
+                {% if search_query %}
+                <div class="col-12">
+                    <a href="{{ url_for('recipes_list') }}" class="btn btn-secondary btn-sm">Clear Search</a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+    <div class="card mb-4">
         <div class="card-header">
             <h5>Add New Recipe</h5>
         </div>

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Item Search {% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">Search for Item</h2>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('search_item') }}" class="row g-3">
+                <div class="col-md-5"i>
+                    <label class="form-label">Item Name</label>
+                    <input type="text" name="q" value="{{ search_query }}"
+                        class="form-control" placeholder="e.g. Darksteel Ore" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Server (optional)</label>
+                    <select name="server_id" class="form-select">
+                        <option value="">All Servers</option>
+                        {% for server in servers %}
+                            <option value="{{ server.Server_ID }}"
+                                {% if selected_server == server.Server_ID %}selected{% endif %}>
+                                {{ server.Server_Name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Search</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if search_query %}
+        {% if results %}
+            {% for result in results %}
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between">
+                    <strong>{{ result.item.Item_Name }}</strong>
+                    <span class="badge bg-primary">Total: {{ result.total }}</span>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group-item d-flex justify-content-betweeen">
+                       {% for loc in result.locations %}
+                       <li class="list-group-item d-flex justify-content-between">
+                            <span>
+                                <strong>{{ loc.character }}</strong>
+                                <small class="text-muted">({{ loc.server }})</small>
+                                → {{ loc.storage }}
+                            </span>
+                            <span class="badge bg-success">{{ loc.quantity }}</span>
+                       </li>
+                       {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="alert alert-warning">
+                No locations found for "{{ search_query }}"
+            </div>
+        {% endif %}
+    {% endif %}
+{% endblock %}

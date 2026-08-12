@@ -27,32 +27,52 @@
 
     <!-- Crafting Tree -->
     <div class="card mt-4">
-        <div class="card-header">
-            <h5>Crafting Tree</h5>
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Crafting Tree</h5>
+            {% if selected_character %}
+                <span class="badge bg-secondary">Checking inventory for {{ selected_character.Character_Name }}</span>
+            {% endif %}
         </div>
         <div class="card-body">
-            <ul class="list-group">
-                {% for ing in recipe.ingredients %}
-                <li class="list-group-item">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <strong>{{ ing.Quantity }} x {{ ing.item.Item_Name }}</strong>
-
-                        <!-- Inventory Info -->
-                        <div class="text-end">
-                            {% set inv = ingredient_inventory.get(ing.item.Item_ID) %}
-                            {% if inv %}
-                                <span class="badge bg-success">{{ inv.total }} total owned</span>
-                                <small class="d-block text-muted mt-1">
-                                    {{ inv.locations | join(', ') }}
-                                </small>
-                            {% else %}
-                                <span class="badge bg-danger">Nobody has this item</span>
-                            {% endif %}
+            {% if tree %}
+                {% macro render_node(node) %}
+                    <div class="mb-2" style="margin-left: {{ node.depth * 25 }}px;">
+                        <div class="card {% if node.sub_sub_recipe %}border-info{% else %} border-secondary{% endif %}">
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ node.quantity }} x {{ node.item_name }}</strong>
+                                        {% if node.sub_recipe %}
+                                            <span class="badge bg-info ms-2">Crafted</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary ms-2">Raw</span>
+                                        {% endif %}
+                                    </div>
+                                    {% if selected_character %}
+                                        <span class="badge {% if node.owned >= node.quantity %}bg-success{% else %}bg-warning{% endif %}">
+                                            Own: {{ node.owned }} / Need: {{ node.quantity }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
+
+                        {% if node.sub_recipe %}
+                            <div class="mt-2 ms-3 border-start border-2 ps-3">
+                                {% for sub in node.sub_recipe %}
+                                    {{ render_node(sub) }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
-                </li>
+                {% endmacro %}
+
+                {% for node in tree %}
+                    {{ render_node(node) }}
                 {% endfor %}
-            </ul>
+            {% else %}
+                <p class="text-muted">No ingredients defined for this recipe.</p>
+            {% endif %}
         </div>
     </div>
 

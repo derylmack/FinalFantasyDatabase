@@ -65,7 +65,13 @@
                 <tbody>
                     {% for item in items %}
                     <tr>
-                        <td><strong>{{ item.Item_Name }}</strong></td>
+                        <td>
+                            <span class="item-name-hover"
+                                  data-item-id="{{item.Item_ID}}"
+                                  data-item-name="{{ item.Item_Name }}">
+                                <strong>{{ item.Item_Name }}</strong>
+                            </span>
+                        </td>
                         <td>{{ item.Item_Type or '-' }}</td>
                         <td>{{ item.Item_Obtained_From or '-' }}</td>
                         <td>
@@ -125,5 +131,88 @@
             </form>
         </div>
     </div>
+
+<!-- Hover Card Container -->
+ <div id="item-hover-card" class="item-hover-card d-none">
+    <div class="card shadow">
+        <div class="card-header py-2">
+            <strong id="hover-item-name"></strong>
+        </div>
+        <div class="card-body py-2" id="hover-locations">
+            <!-- locations will be filled by JS -->
+        </div>
+    </div>
+ </div>
+
+ <style>
+.item-hover-card {
+    position: absolute;
+    z-index: 1050;
+    min-width: 280px;
+    max-width: 360px;
+    pointer-events:none;
+}
+.item-name-hover {
+    cursor: help;
+    border-bottom: 1px dotted #0d6efd;
+}
+ </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const hoverCard = document.getElementById('item-hover-card');
+        const hoverItemName = document.getElementById('hover-item-name');
+        const hoverLocations = document.getElementById('hover-locations');
+
+        // Pre-Load Locations data from the page
+        // We will embed it as a JSON object
+        const itemLocations = {
+            {% for item in items %}
+            {{ item.Item_ID }}: [
+                {% for loc in item.item_locations %}
+                    {
+                        "character": "{{ loc.storage.character.Character_Name if loc.storage and loc.storage.character else 'Unknown' }}",
+                        "storage": "{{ loc.storage.Storage_Location if loc.storage else 'Unknown'}}",
+                        "qty": {{ (loc.Quantity or 0) + (loc.Quantity_HQ or 0) }}
+                    }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ]{% if not loop.last %},{% endif %}
+            {% endfor %}
+        };
+
+        document.querySelectorAll('.item-name-hover').forEach(el => {
+            el.addEventListener('mouseenter',function(e) {
+                const itemId= this.dataset.itemId;
+                const itemName = this.dataset.itemName;
+                const locations = itemLocations[itemId] || [];
+
+                hoverItemName.textContent = itemName;
+
+                if (locations.length === 0) {
+                    hoverLocations.innerHTML = '<p class="text-muted mb-0">Not stored anywhere</p>';
+                } else {
+                    let html = '<ul class="list-unstyled mb-0">';
+                    locations.forEach(loc => {
+                        if (loc.qty > 0) {
+                            html += `<li><strong>${loc.character}</strong> → ${loc.storage} <span class="badge bg-secondary">${loc.qty}</span></li>`;
+                        }
+                    });
+                    html += '</ul>';
+                    hoverLocations.innerHTML = html;
+                }
+
+                // Position the card
+                const rect = this.getBoundingClientRect();
+                hoverCard.style.top = (window.scrollY + rect.bottom + 8) + 'px';
+                hoverCard.style.left = (window.scrollX + rect.left) + 'px';
+                hoverCard.classList.remove('d-none');
+            });
+
+            el.addEventListener('mouseleave',function() {
+                hoverCard.classList.add('d-none');
+            });
+        });
+    });
+</script>
 
 {% endblock %}

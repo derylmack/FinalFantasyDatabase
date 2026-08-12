@@ -815,13 +815,22 @@ def create_app(config_class=Config):
     @app.route('/recipes')
     def recipes_list():
         """Display all recipes."""
-        all_recipes = Recipes.query.order_by(Recipes.Required_Level, Recipes.Recipe_Name).all()
+        search_query = request.args.get('search','').strip()
+
+        query = Recipes.query
+
+        if search_query:
+            query = query.filter(Recipes.Recipe_Name.ilike(f'%{search_query}%'))
+
+
+        all_recipes = query.order_by(Recipes.Required_Level, Recipes.Recipe_Name).all()
         all_jobs = Jobs.query.order_by(Jobs.Job_Type, Jobs.Job_Longname).all()
 
         return render_template('recipes.html',
                                title='FFXIV Recipes',
                                recipes=all_recipes,
-                               all_jobs=all_jobs)
+                               all_jobs=all_jobs,
+                               search_query=search_query)
 
     @app.route('/add_recipe', methods=['POST'])
     def add_recipe():
@@ -926,36 +935,40 @@ def create_app(config_class=Config):
         char_id = request.args.get('char_id', type=int)
         selected_character = None
         if char_id:
-            selected_character = Character.query.get_or_404(char_id)
+            selected_character = Character.query.options(
+                joinedload(Character.storage_locations)
+                    .joinedload(StorageLocations.item_locations)
+            ).get_or_404(char_id)
 
-        all_characters = Character.query.options(
-            joinedload(Character.storage_locations)
-                .joinedload(StorageLocations.item_locations)
-        ).order_by(Character.Character_Name).all()
+        all_characters = Character.query.order_by(Character.Character_Name).all()
 
-        ingredient_ids = {ing.item.Item_ID for ing in recipe.ingredients}
-        ingredient_inventory = {}
-        for char in all_characters:
-            for storage in char.storage_locations:
-                for item_loc in storage.item_locations:
-                    if item_loc.Item_ID in ingredient_ids:
-                        qty = (item_loc.Quantity or 0) + (item_loc.Quantity_HQ or 0)
-                        if qty > 0:
-                            if item_loc.Item_ID not in ingredient_inventory:
-                                ingredient_inventory[item_loc.Item_ID] = {'total': 0, 'locations': []}
-                            ingredient_inventory[item_loc.Item_ID]['total'] += qty
-                            ingredient_inventory[item_loc.Item_ID]['locations'].append(
-                                f"{char.Character_Name} → {storage.Storage_Location} ({qty})"
-                            )
-
+        # Build the tree
         tree = get_recipe_tree(recipe)
+
+        # Calculate ownership if a character is selected
+        if selected_character:
+            # Build a lookup of item_id - total quantity owned
+            owned = {}
+            for storage in selected_character.storage_locations:
+                for item_loc in storage.item_locations:
+                    item_id = item_loc.Item_ID
+                    qty = (item_loc.Quantity or 0) + (item_loc.Quantity_HQ or 0)
+                    owned[item_id] = owned.get(item_id, 0) + qty
+
+            # Attach owned quantity to every node in the tree (including sub-recipes)
+            def attach_ownership(nodes):
+                for node in nodes:
+                    node['owned'] = owned.get(node['item_id'], 0)
+                    if node.get('sub_recipe'):
+                        attach_ownership(node['sub_recipe'])
+
+            attach_ownership(tree)
 
         return render_template('recipe_detail.html',
                                recipe=recipe,
                                tree=tree,
                                all_characters=all_characters,
-                               selected_character=selected_character,
-                               ingredient_inventory=ingredient_inventory)
+                               selected_character=selected_character)
 
     @app.route('/add_item_to_storage_global', methods=['POST'])
     def add_item_to_storage_global():
@@ -1019,6 +1032,63 @@ def create_app(config_class=Config):
 
         return redirect(url_for('character_detail', char_id=char_id) + '#storage-' + str(storage_id))
 
+    @app.route('/search-item')
+    def search_item():
+        """Search for an item across all characters and storages."""
+        search_query = request.args.get('q', '').strip()
+        server_id = request.args.get('server_id', type=int)
+
+        results = []
+
+        if search_query:
+            # Find matching items
+            items = Items.query.filter(Items.Item_Name.ilike(f'%{search_query}%')).all()
+
+            for item in items:
+                locations = []
+                total_qty = 0
+
+                # Get all ItemLocations for this item
+                item_locs = ItemLocations.query.filter_by(Item_ID=item.Item_ID)\
+                    .options(
+                        joinedload(ItemLocations.storage)
+                            .joinedload(StorageLocations.character)
+                            .joinedload(Character.server)
+                    ).all()
+
+                for loc in item_locs:
+                    qty = (loc.Quantity or 0) + (loc.Quantity_HQ or 0)
+                    if qty <= 0:
+                        continue
+
+                    # Optional server filter
+                    if server_id and loc.storage.character.Server_ID != server_id:
+                        continue
+
+                    locations.append({
+                        'character': loc.storage.character.Character_Name,
+                        'server': loc.storage.character.server.Server_Name if loc.storage.character.server else 'Unknown',
+                        'storage': loc.storage.Storage_Location,
+                        'quantity': qty,
+                        'hq': loc.Quantity_HQ or 0
+                    })
+                    total_qty += qty
+
+                if locations:
+                    results.append({
+                        'item': item,
+                        'total': total_qty,
+                        'locations': locations
+                    })
+
+        servers = Server.query.order_by(Server.Server_Name).all()
+
+        return render_template('search_item.html',
+                                title='Item Search',
+                                results=results,
+                                search_query=search_query,
+                                servers=servers,
+                                selected_server=server_id)
 
     return app
 
@@ -1026,4 +1096,4 @@ def create_app(config_class=Config):
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False)

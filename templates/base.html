@@ -63,6 +63,8 @@
                         href="{{ url_for('items_list') }}">Items</a>
                 <a class="nav-link {% if request.endpoint == 'recipes_list' %}active{% endif %}"
                         href="{{ url_for('recipes_list') }}">Recipes</a>
+                <a class="nav-link {% if request.endpoint == 'search_item' %}active{% endif %}"
+                        href="{{ url_for('search_item') }}">Item Search</a>
             </div>
         </div>
     </nav>
